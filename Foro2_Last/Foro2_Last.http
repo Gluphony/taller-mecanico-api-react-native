@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:5250
+@token = pega-el-token-de-login-aqui
+
+### Crear el primer administrador (ejecutar solo una vez; cambia la contraseña)
+POST {{baseUrl}}/api/auth/bootstrap
+Content-Type: application/json
+
+{
+  "nombreUsuario": "admin",
+  "contrasena": "CambiaEstaContrasena123!"
+}
+
+### Iniciar sesión
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "admin",
+  "contrasena": "CambiaEstaContrasena123!"
+}
+
+### Consultar clientes (pega el token recibido arriba en @token)
+GET {{baseUrl}}/api/clientes
+Authorization: Bearer {{token}}
+Accept: application/json

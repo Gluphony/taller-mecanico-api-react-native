@@ -1,0 +1,47 @@
+# Visual Studio and editors
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# .NET build output
+**/bin/
+**/obj/
+*.pdb
+*.cache
+
+# React Native / Expo
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/coverage/
+**/.metro-health-check*
+
+**/AGENTS.md
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# Generated native folders
+**/android/
+**/ios/
+
+# Database backups and local SQL files
+*.bak
+*.mdf
+*.ldf
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
