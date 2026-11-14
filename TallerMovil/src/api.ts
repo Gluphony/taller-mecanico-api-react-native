@@ -36,6 +36,7 @@ export type Mantenimiento = {
   tecnico?: string | null;
   recomendaciones?: string | null;
   proximoMantenimiento?: string | null;
+  actualizadoEn?: string | null;
 };
 
 export type Sesion = {
@@ -84,7 +85,11 @@ export async function apiRequest<T>(
     let message = "La solicitud no pudo completarse.";
     try {
       const body = await response.json();
-      message = body.mensaje || body.title || body.message || message;
+      const validationMessages = body.errors
+        ? Object.values(body.errors).flat().filter((value): value is string => typeof value === "string")
+        : [];
+      message = body.detalle || body.mensaje || validationMessages.join(" ") || body.title || body.message || message;
+      if (body.traceId) message += " (referencia: " + body.traceId + ")";
     } catch {
       // Respuesta sin JSON.
     }

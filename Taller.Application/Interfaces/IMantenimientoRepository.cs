@@ -7,4 +7,6 @@ public interface IMantenimientoRepository
     Task<IReadOnlyList<ServicioMantenimiento>> ListarAsync(int? vehiculoId);
     Task<ServicioMantenimiento?> ObtenerAsync(int id);
     Task<ServicioMantenimiento> CrearAsync(ServicioMantenimiento servicio);
+    Task<bool> ActualizarAsync(ServicioMantenimiento servicio);
+    Task<bool> EliminarAsync(int id);
 }

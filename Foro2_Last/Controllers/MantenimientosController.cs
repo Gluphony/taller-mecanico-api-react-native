@@ -30,4 +30,12 @@ public sealed class MantenimientosController(MantenimientoService mantenimientos
             ? NotFound(new { mensaje = "No se encontró el vehículo indicado." })
             : CreatedAtAction(nameof(Obtener), new { id = servicio.Id }, servicio);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Actualizar(int id, GuardarMantenimientoRequest request) =>
+        await mantenimientos.ActualizarAsync(id, request) ? NoContent() : NotFound();
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Eliminar(int id) =>
+        await mantenimientos.EliminarAsync(id) ? NoContent() : NotFound();
 }

@@ -31,4 +31,16 @@ public sealed class ClientesController(ClienteService clientes) : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(int id, GuardarClienteRequest request) =>
         await clientes.ActualizarAsync(id, request) ? NoContent() : NotFound();
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Eliminar(int id)
+    {
+        var resultado = await clientes.EliminarAsync(id);
+        return resultado switch
+        {
+            ResultadoEliminacion.Eliminado => NoContent(),
+            ResultadoEliminacion.NoEncontrado => NotFound(),
+            _ => Conflict(new { mensaje = "No se puede eliminar el cliente porque tiene vehículos asociados." })
+        };
+    }
 }

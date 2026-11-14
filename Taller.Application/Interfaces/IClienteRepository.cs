@@ -8,4 +8,5 @@ public interface IClienteRepository
     Task<Cliente?> ObtenerAsync(int id);
     Task<Cliente> CrearAsync(Cliente cliente);
     Task<bool> ActualizarAsync(Cliente cliente);
+    Task<bool> EliminarAsync(int id);
 }

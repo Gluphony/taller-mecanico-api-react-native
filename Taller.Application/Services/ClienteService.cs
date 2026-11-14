@@ -14,9 +14,10 @@ public sealed class ClienteService(IClienteRepository repository)
 
     public async Task<ClienteDto> CrearAsync(GuardarClienteRequest request)
     {
+        var nombre = ValidarNombre(request.NombreCompleto);
         var cliente = new Cliente
         {
-            NombreCompleto = request.NombreCompleto.Trim(),
+            NombreCompleto = nombre,
             Telefono = Limpiar(request.Telefono),
             Email = Limpiar(request.Email)?.ToLowerInvariant(),
             Direccion = Limpiar(request.Direccion)
@@ -30,11 +31,19 @@ public sealed class ClienteService(IClienteRepository repository)
         return await repository.ActualizarAsync(new Cliente
         {
             Id = id,
-            NombreCompleto = request.NombreCompleto.Trim(),
+            NombreCompleto = ValidarNombre(request.NombreCompleto),
             Telefono = Limpiar(request.Telefono),
             Email = Limpiar(request.Email)?.ToLowerInvariant(),
             Direccion = Limpiar(request.Direccion)
         });
+    }
+
+    public async Task<ResultadoEliminacion> EliminarAsync(int id)
+    {
+        if (await repository.EliminarAsync(id)) return ResultadoEliminacion.Eliminado;
+        return await repository.ObtenerAsync(id) is null
+            ? ResultadoEliminacion.NoEncontrado
+            : ResultadoEliminacion.TieneRegistrosRelacionados;
     }
 
     private static ClienteDto Mapear(Cliente x) => new()
@@ -48,4 +57,12 @@ public sealed class ClienteService(IClienteRepository repository)
 
     private static string? Limpiar(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string ValidarNombre(string value)
+    {
+        var nombre = value.Trim();
+        if (nombre.Length < 2)
+            throw new ArgumentException("El nombre del cliente debe tener al menos 2 caracteres no vacíos.");
+        return nombre;
+    }
 }

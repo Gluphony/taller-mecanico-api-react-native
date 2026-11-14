@@ -1,91 +1,66 @@
-# Taller mecánico: API y base de datos
+# Taller mecánico: API, SQL Server y React Native
 
-Backend REST en ASP.NET Core 8, SQL Server y arquitectura por capas, siguiendo la separación del proyecto de referencia:
+Sistema organizado por capas: dominio, aplicación, infraestructura y API ASP.NET Core 8. La base de datos es **relacional**, implementada en **Microsoft SQL Server**; el script de creación está escrito en **T-SQL**. No es una base NoSQL.
 
-- Taller.Domain: entidades del negocio.
-- Taller.Application: DTOs, contratos de repositorio y servicios.
-- Taller.Infrastructure: acceso parametrizado a SQL Server y hash de contraseñas.
-- Foro2_Last: API web, controladores, autenticación JWT y Swagger.
-- database/create_database.sql: creación de la base y tablas.
+## Estructura
 
-## Requisitos
+- `Taller.Domain`: entidades del negocio.
+- `Taller.Application`: contratos, DTOs y reglas de aplicación.
+- `Taller.Infrastructure`: repositorios SQL parametrizados y seguridad de contraseñas.
+- `Foro2_Last`: API REST, JWT y Swagger.
+- `database/create_database.sql`: creación/migración segura de tablas e índices.
+- `TallerMovil`: interfaz React Native que también puede ejecutarse en navegador con Expo.
+
+## Requisitos y base de datos
 
 - .NET 8 SDK.
 - SQL Server local o remoto.
-- Una cuenta de SQL Server con permiso para crear la base de datos al ejecutar el script.
+- Para la instancia que usa este equipo: `localhost\SQLEXPRESS01`.
 
-## Puesta en marcha
+Ejecuta `database/create_database.sql` en SQL Server Management Studio usando una cuenta que pueda crear la base la primera vez. El script se puede volver a ejecutar: crea objetos faltantes y añade la columna de migración requerida, sin borrar tablas ni registros.
 
-1. Abre database/create_database.sql en SQL Server Management Studio y ejecútalo.
-2. Ajusta ConnectionStrings:TallerDb en Foro2_Last/appsettings.json si tu instancia de SQL Server no es localhost. En producción, configura la cadena como variable ConnectionStrings__TallerDb y evita guardar credenciales en el repositorio.
-3. En Development, si no se define Jwt__Key, la API genera una clave temporal al iniciar. Los JWT existentes dejan de ser válidos cuando se reinicia la API. En producción configura Jwt__Key como variable de entorno o secreto con al menos 32 bytes; configura también Jwt__Issuer, Jwt__Audience, ConnectionStrings__TallerDb y, si corresponde, Cors__AllowedOrigins__0.
-4. Desde la raíz del repositorio, ejecuta estos comandos de PowerShell:
-   dotnet restore .\Foro2_Last\Foro2_Last.csproj
-   dotnet run --project .\Foro2_Last\Foro2_Last.csproj
-5. En desarrollo abre Swagger en la URL HTTPS indicada por la consola. El endpoint GET /health devuelve el estado de disponibilidad.
+La cadena local ya está configurada en `Foro2_Last/appsettings.json`. Si usas otra instancia, modifica `ConnectionStrings:TallerDb` o configura la variable `ConnectionStrings__TallerDb`. Ejemplo de cadena para PowerShell:
 
-La primera cuenta administradora se crea una sola vez mediante POST /api/auth/bootstrap. Usa una contraseña de al menos 12 caracteres. Después de crearla, el endpoint queda cerrado. Inicia sesión en POST /api/auth/login y usa el token recibido como Authorization: Bearer <token> para las demás rutas.
+```powershell
+$env:ConnectionStrings__TallerDb = 'Server=localhost\SQLEXPRESS01;Database=TallerMecanicoDb;Integrated Security=True;Encrypt=True;TrustServerCertificate=True'
+```
 
-## Rutas principales
+## Iniciar la API
 
-| Método | Ruta | Uso |
-|---|---|---|
-| POST | /api/auth/bootstrap | Crear el primer administrador (solo una vez) |
-| POST | /api/auth/login | Iniciar sesión y obtener JWT |
-| GET / POST | /api/clientes | Buscar/listar y registrar clientes |
-| GET / PUT | /api/clientes/{id} | Consultar y actualizar clientes |
-| GET / POST | /api/vehiculos | Consultar y registrar vehículos |
-| GET / PUT | /api/vehiculos/{id} | Consultar y actualizar vehículos |
-| PUT | /api/vehiculos/{id}/cliente | Asociar o reasociar el vehículo a un cliente |
-| GET | /api/vehiculos/{id}/historial | Consultar el historial de mantenimiento |
-| GET / POST | /api/mantenimientos | Consultar y registrar mantenimientos |
-| GET | /api/mantenimientos/{id} | Consultar el detalle de un mantenimiento |
+Desde la raíz del repositorio:
 
-Los listados aceptan filtros: GET /api/clientes?buscar=..., GET /api/vehiculos?clienteId=1&buscar=... y GET /api/mantenimientos?vehiculoId=1.
+```powershell
+dotnet restore .\Foro2_Last\Foro2_Last.csproj
+dotnet run --project .\Foro2_Last\Foro2_Last.csproj
+```
 
-## Ejemplos de JSON
+Swagger se abre en `http://localhost:5250/swagger`. `GET /health` confirma que la API responde; `GET /health/ready` confirma también la conexión a SQL Server. Si falla este último, revisa que el servicio `SQLEXPRESS01` esté iniciado y que la cadena apunte a la instancia correcta.
 
-Crear cliente:
-    {
-      "nombreCompleto": "Ana López",
-      "telefono": "8888-0000",
-      "email": "ana@example.com",
-      "direccion": "Managua"
-    }
+En Development, si falta `Jwt:Key`, la API genera una clave temporal al iniciar; los tokens anteriores dejan de ser válidos al reiniciar. Para producción configura `Jwt__Key` como secreto con al menos 32 bytes, además de `Jwt__Issuer`, `Jwt__Audience`, `ConnectionStrings__TallerDb` y `Cors__AllowedOrigins__0` cuando corresponda.
 
-Crear vehículo:
-    {
-      "clienteId": 1,
-      "placa": "M123456",
-      "vin": "1HGCM82633A004352",
-      "marca": "Honda",
-      "modelo": "Civic",
-      "anio": 2020,
-      "color": "Azul"
-    }
+## Acceso inicial
 
-Registrar mantenimiento:
-    {
-      "vehiculoId": 1,
-      "fechaServicio": "2026-11-13T09:00:00Z",
-      "tipoServicio": "Cambio de aceite",
-      "descripcion": "Cambio de aceite y filtro",
-      "kilometraje": 50000,
-      "costo": 1800.00,
-      "tecnico": "Luis",
-      "recomendaciones": "Revisar frenos en la próxima visita",
-      "proximoMantenimiento": "2027-05-13T09:00:00Z"
-    }
+La primera cuenta administradora se crea una sola vez mediante `POST /api/auth/bootstrap`, con contraseña de al menos 12 caracteres. Luego usa `POST /api/auth/login`; las rutas de datos requieren el JWT recibido en `Authorization: Bearer <token>`. El formulario inicial de Expo permite crear esa cuenta cuando no existe un usuario.
 
-## Integridad y resguardo
+## Operaciones CRUD
 
-Las tablas aplican claves foráneas, índices únicos para placa, VIN, correo y usuario, y restricciones de validación. Las operaciones usan parámetros SQL. Las contraseñas se guardan con PBKDF2 y sal aleatoria; las rutas de datos requieren JWT. Para conservar la información, configura copias periódicas de SQL Server según la política del entorno donde se despliegue.
+| Recurso | Crear | Consultar/buscar | Actualizar | Eliminar |
+|---|---|---|---|---|
+| Clientes | `POST /api/clientes` | `GET /api/clientes`, `GET /api/clientes/{id}` | `PUT /api/clientes/{id}` | `DELETE /api/clientes/{id}` |
+| Vehículos | `POST /api/vehiculos` | `GET /api/vehiculos`, `GET /api/vehiculos/{id}` | `PUT /api/vehiculos/{id}` | `DELETE /api/vehiculos/{id}` |
+| Mantenimientos | `POST /api/mantenimientos` | `GET /api/mantenimientos`, `GET /api/mantenimientos/{id}`, `GET /api/vehiculos/{id}/historial` | `PUT /api/mantenimientos/{id}` | `DELETE /api/mantenimientos/{id}` |
 
+También puedes asociar/reasociar un vehículo mediante `PUT /api/vehiculos/{id}/cliente`. Los filtros son `GET /api/clientes?buscar=...`, `GET /api/vehiculos?clienteId=1&buscar=...` y `GET /api/mantenimientos?vehiculoId=1`.
 
-## Aplicación móvil
+Reglas de integridad: placas, VIN informados, correos informados y nombres de usuario son únicos. Un cliente no se puede eliminar si tiene vehículos; un vehículo no se puede eliminar si tiene servicios. Para eliminar un servicio se solicita confirmación en la app. Las validaciones también se aplican en el servidor y la base de datos; los conflictos de unicidad o relaciones devuelven HTTP 409.
 
-La interfaz React Native está en la carpeta TallerMovil. Para abrir la vista de navegador, inicia primero la API y después, desde TallerMovil, ejecuta:
+## Aplicación React Native / web
 
-    npm run web
+Desde la carpeta `TallerMovil`:
 
-Expo mostrará la URL local de la interfaz. En el emulador Android el API predeterminado usa 10.0.2.2:5250. En un teléfono físico, configura EXPO_PUBLIC_API_URL con la IP local del equipo y ejecuta la API escuchando en 0.0.0.0:5250. La guía detallada está en TallerMovil/README.md.
+```powershell
+npm install
+npm run web
+```
+
+La app web llama por defecto a `http://localhost:5250`. Para Android emulado usa `http://10.0.2.2:5250`; en un teléfono, configura `EXPO_PUBLIC_API_URL` con la IP local del equipo. Más detalles en `TallerMovil/README.md`.

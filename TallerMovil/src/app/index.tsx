@@ -23,7 +23,7 @@ type AuthMode = "login" | "bootstrap";
 type Overlay =
   | { type: "cliente"; item?: Cliente }
   | { type: "vehiculo"; item?: Vehiculo }
-  | { type: "servicio"; vehiculoId?: number }
+  | { type: "servicio"; vehiculoId?: number; item?: Mantenimiento }
   | { type: "historial"; vehiculo: Vehiculo }
   | null;
 type Notice = { type: "error" | "success" | "info"; message: string };
@@ -184,10 +184,12 @@ export default function TallerHome() {
   }
 
   async function saveService(values: MantenimientoValues) {
+    if (!overlay || overlay.type !== "servicio") return;
     setSaving(true);
     try {
-      await apiRequest("/api/mantenimientos", {
-        method: "POST",
+      const id = overlay.item?.id;
+      await apiRequest(id ? "/api/mantenimientos/" + id : "/api/mantenimientos", {
+        method: id ? "PUT" : "POST",
         body: jsonBody({
           ...values,
           fechaServicio: values.fechaServicio + "T09:00:00",
@@ -196,9 +198,26 @@ export default function TallerHome() {
             : null,
         }),
       });
-      await saved("Servicio agregado al historial del vehículo.");
+      await saved(id ? "Cambios del servicio guardados." : "Servicio agregado al historial del vehículo.");
     } catch (error) {
       setNotice({ type: "error", message: error instanceof Error ? error.message : "No se pudo guardar el servicio." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteRecord(kind: "clientes" | "vehiculos" | "mantenimientos", id: number) {
+    setSaving(true);
+    try {
+      await apiRequest("/api/" + kind + "/" + id, { method: "DELETE" });
+      const messages = {
+        clientes: "Cliente eliminado.",
+        vehiculos: "Vehículo eliminado.",
+        mantenimientos: "Servicio eliminado del historial.",
+      };
+      await saved(messages[kind]);
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "No se pudo eliminar el registro." });
     } finally {
       setSaving(false);
     }
@@ -246,7 +265,7 @@ export default function TallerHome() {
           </View>
         </View>
 
-        {notice && <Notice notice={notice} onClose={() => setNotice(null)} />}
+        {notice && !overlay && <Notice notice={notice} onClose={() => setNotice(null)} />}
         {apiIssue && (
           <View style={styles.apiIssue}>
             <Text style={styles.issueMark}>!</Text>
@@ -319,7 +338,11 @@ export default function TallerHome() {
                 <SearchField value={search} onChange={setSearch} placeholder="Buscar placa o tipo de servicio" />
                 <SectionHeading title="Historial de servicios" action={visibleServices.length + " registros"} />
                 {visibleServices.length
-                  ? visibleServices.map((service) => <ServiceCard key={service.id} servicio={service} />)
+                  ? visibleServices.map((service) => (
+                      <Pressable key={service.id} onPress={() => setOverlay({ type: "servicio", item: service })}>
+                        <ServiceCard servicio={service} />
+                      </Pressable>
+                    ))
                   : <EmptyCard title={q ? "No encontramos coincidencias" : "Aún no hay servicios"}
                       detail={q ? "Prueba con otra placa o descripción." : "Registra una visita y aparecerá aquí y en el historial del vehículo."}
                       action={q ? "Limpiar búsqueda" : "Registrar servicio"}
@@ -335,6 +358,10 @@ export default function TallerHome() {
         overlay={overlay} clients={clients} vehicles={vehicles} services={services} saving={saving}
         onClose={() => setOverlay(null)} onSaveClient={saveClient} onSaveVehicle={saveVehicle}
         onSaveService={saveService}
+        notice={notice} onCloseNotice={() => setNotice(null)}
+        onDeleteClient={(id) => void deleteRecord("clientes", id)}
+        onDeleteVehicle={(id) => void deleteRecord("vehiculos", id)}
+        onDeleteService={(id) => void deleteRecord("mantenimientos", id)}
         onAddService={(vehiculoId) => setOverlay({ type: "servicio", vehiculoId })}
       />
     </SafeAreaView>
@@ -528,24 +555,30 @@ function Notice({ notice, onClose }: { notice: Notice; onClose?: () => void }) {
 }
 
 function EditorModal({
-  overlay, clients, vehicles, services, saving, onClose,
+  overlay, clients, vehicles, services, saving, notice, onClose, onCloseNotice,
   onSaveClient, onSaveVehicle, onSaveService, onAddService,
+  onDeleteClient, onDeleteVehicle, onDeleteService,
 }: {
   overlay: Overlay;
   clients: Cliente[];
   vehicles: Vehiculo[];
   services: Mantenimiento[];
   saving: boolean;
+  notice: Notice | null;
   onClose: () => void;
+  onCloseNotice: () => void;
   onSaveClient: (values: ClienteValues) => void;
   onSaveVehicle: (values: VehiculoValues) => void;
   onSaveService: (values: MantenimientoValues) => void;
   onAddService: (vehicleId: number) => void;
+  onDeleteClient: (id: number) => void;
+  onDeleteVehicle: (id: number) => void;
+  onDeleteService: (id: number) => void;
 }) {
   if (!overlay) return null;
   const title = overlay.type === "cliente" ? (overlay.item ? "Editar cliente" : "Nuevo cliente")
     : overlay.type === "vehiculo" ? (overlay.item ? "Editar vehículo" : "Nuevo vehículo")
-      : overlay.type === "servicio" ? "Registrar servicio" : "Historial del vehículo";
+      : overlay.type === "servicio" ? (overlay.item ? "Editar servicio" : "Registrar servicio") : "Historial del vehículo";
   const subtitle = overlay.type === "historial"
     ? overlay.vehiculo.placa + " · " + overlay.vehiculo.marca + " " + overlay.vehiculo.modelo
     : "Completa los datos para mantener el registro al día.";
@@ -567,9 +600,10 @@ function EditorModal({
               <Pressable onPress={onClose} style={styles.closeButton}><Text style={styles.closeGlyph}>×</Text></Pressable>
             </View>
             <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
-              {overlay.type === "cliente" && <ClientForm key={overlay.item?.id || "new-client"} initial={overlay.item} onClose={onClose} onSave={onSaveClient} saving={saving} />}
-              {overlay.type === "vehiculo" && <VehicleForm key={overlay.item?.id || "new-vehicle"} initial={overlay.item} clients={clients} onClose={onClose} onSave={onSaveVehicle} saving={saving} />}
-              {overlay.type === "servicio" && <ServiceForm key={overlay.vehiculoId || "new-service"} vehicles={vehicles} initialVehicleId={overlay.vehiculoId} onClose={onClose} onSave={onSaveService} saving={saving} />}
+              {notice && <Notice notice={notice} onClose={onCloseNotice} />}
+              {overlay.type === "cliente" && <ClientForm key={overlay.item?.id || "new-client"} initial={overlay.item} onClose={onClose} onSave={onSaveClient} onDelete={onDeleteClient} saving={saving} />}
+              {overlay.type === "vehiculo" && <VehicleForm key={overlay.item?.id || "new-vehicle"} initial={overlay.item} clients={clients} onClose={onClose} onSave={onSaveVehicle} onDelete={onDeleteVehicle} saving={saving} />}
+              {overlay.type === "servicio" && <ServiceForm key={overlay.item?.id || overlay.vehiculoId || "new-service"} initial={overlay.item} vehicles={vehicles} initialVehicleId={overlay.vehiculoId} onClose={onClose} onSave={onSaveService} onDelete={onDeleteService} saving={saving} />}
               {overlay.type === "historial" && (
                 <View>
                   <View style={styles.historyCountRow}><Text style={styles.historyCount}>{history.length}</Text><Text style={styles.historyLabel}>{history.length === 1 ? "servicio registrado" : "servicios registrados"}</Text></View>

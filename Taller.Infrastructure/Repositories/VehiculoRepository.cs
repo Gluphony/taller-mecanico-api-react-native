@@ -17,7 +17,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
 
     public async Task<IReadOnlyList<Vehiculo>> ListarAsync(int? clienteId, string? buscar)
     {
-        var sql = SelectFields + """
+        var sql = SelectFields + "\n" + """
             WHERE (@ClienteId IS NULL OR v.ClienteId = @ClienteId)
               AND (@Buscar IS NULL OR v.Placa LIKE N'%' + @Buscar + N'%'
                    OR v.Marca LIKE N'%' + @Buscar + N'%'
@@ -75,6 +75,25 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = vehiculo.Id;
         AgregarCampos(command, vehiculo);
+        return await command.ExecuteNonQueryAsync() == 1;
+    }
+
+    public async Task<bool> EliminarAsync(int id)
+    {
+        const string sql = """
+            DELETE FROM dbo.Vehiculos
+            WHERE VehiculoId = @Id
+              AND NOT EXISTS
+              (
+                  SELECT 1
+                  FROM dbo.ServiciosMantenimiento
+                  WHERE VehiculoId = @Id
+              );
+            """;
+        await using var connection = connections.Create();
+        await connection.OpenAsync();
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         return await command.ExecuteNonQueryAsync() == 1;
     }
 

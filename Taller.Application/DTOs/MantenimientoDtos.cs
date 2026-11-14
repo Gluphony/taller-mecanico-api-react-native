@@ -17,6 +17,7 @@ public sealed class MantenimientoDto
     public string? Tecnico { get; init; }
     public string? Recomendaciones { get; init; }
     public DateTime? ProximoMantenimiento { get; init; }
+    public DateTime? ActualizadoEn { get; init; }
 }
 
 public sealed class GuardarMantenimientoRequest

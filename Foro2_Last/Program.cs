@@ -116,7 +116,26 @@ app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { estado = "disponible" }));
+app.MapGet("/health", () => Results.Ok(new { estado = "API disponible" }));
+app.MapGet("/health/ready", async (
+    SqlConnectionFactory connections,
+    ILogger<Program> logger,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        await using var connection = connections.Create();
+        await connection.OpenAsync(cancellationToken);
+        return Results.Ok(new { estado = "lista", baseDatos = "conectada" });
+    }
+    catch (Exception exception)
+    {
+        logger.LogError(exception, "La comprobación de disponibilidad no pudo abrir SQL Server.");
+        return Results.Json(
+            new { estado = "no_disponible", mensaje = "La API no puede conectarse a la base de datos." },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
 
 app.Run();
 

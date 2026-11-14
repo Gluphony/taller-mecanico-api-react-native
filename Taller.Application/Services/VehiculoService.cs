@@ -36,16 +36,40 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
         return await repository.ActualizarAsync(vehiculo);
     }
 
-    private static Vehiculo CrearEntidad(GuardarVehiculoRequest request) => new()
+    public async Task<ResultadoEliminacion> EliminarAsync(int id)
     {
-        ClienteId = request.ClienteId,
-        Placa = request.Placa.Trim().ToUpperInvariant(),
-        Vin = Limpiar(request.Vin)?.ToUpperInvariant(),
-        Marca = request.Marca.Trim(),
-        Modelo = request.Modelo.Trim(),
-        Anio = request.Anio,
-        Color = Limpiar(request.Color)
-    };
+        if (await repository.EliminarAsync(id)) return ResultadoEliminacion.Eliminado;
+        return await repository.ObtenerAsync(id) is null
+            ? ResultadoEliminacion.NoEncontrado
+            : ResultadoEliminacion.TieneRegistrosRelacionados;
+    }
+
+    private static Vehiculo CrearEntidad(GuardarVehiculoRequest request)
+    {
+        var placa = request.Placa.Trim().ToUpperInvariant();
+        var marca = request.Marca.Trim();
+        var modelo = request.Modelo.Trim();
+        var vin = Limpiar(request.Vin)?.ToUpperInvariant();
+        if (placa.Length is < 2 or > 12)
+            throw new ArgumentException("La placa debe tener entre 2 y 12 caracteres no vacíos.");
+        if (marca.Length is < 1 or > 60 || modelo.Length is < 1 or > 60)
+            throw new ArgumentException("La marca y el modelo deben tener entre 1 y 60 caracteres no vacíos.");
+        if (vin is not null && vin.Length is < 11 or > 17)
+            throw new ArgumentException("El VIN debe tener entre 11 y 17 caracteres.");
+        if (request.Anio is not null && request.Anio is < 1886 or > 2100)
+            throw new ArgumentException("El año debe estar entre 1886 y 2100.");
+
+        return new Vehiculo
+        {
+            ClienteId = request.ClienteId,
+            Placa = placa,
+            Vin = vin,
+            Marca = marca,
+            Modelo = modelo,
+            Anio = request.Anio,
+            Color = Limpiar(request.Color)
+        };
+    }
 
     private static VehiculoDto Mapear(Vehiculo x) => new()
     {

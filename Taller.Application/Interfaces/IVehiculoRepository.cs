@@ -8,4 +8,5 @@ public interface IVehiculoRepository
     Task<Vehiculo?> ObtenerAsync(int id);
     Task<Vehiculo> CrearAsync(Vehiculo vehiculo);
     Task<bool> ActualizarAsync(Vehiculo vehiculo);
+    Task<bool> EliminarAsync(int id);
 }

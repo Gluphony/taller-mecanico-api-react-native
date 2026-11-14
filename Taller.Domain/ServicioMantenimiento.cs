@@ -12,6 +12,7 @@ public sealed class ServicioMantenimiento
     public string? Tecnico { get; set; }
     public string? Recomendaciones { get; set; }
     public DateTime? ProximoMantenimiento { get; set; }
+    public DateTime? ActualizadoEn { get; set; }
     public string? Placa { get; set; }
     public string? Marca { get; set; }
     public string? Modelo { get; set; }

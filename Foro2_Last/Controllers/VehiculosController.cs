@@ -41,6 +41,18 @@ public sealed class VehiculosController(
     public async Task<IActionResult> AsociarCliente(int id, AsociarVehiculoRequest request) =>
         await vehiculos.AsociarClienteAsync(id, request.ClienteId) ? NoContent() : NotFound();
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Eliminar(int id)
+    {
+        var resultado = await vehiculos.EliminarAsync(id);
+        return resultado switch
+        {
+            ResultadoEliminacion.Eliminado => NoContent(),
+            ResultadoEliminacion.NoEncontrado => NotFound(),
+            _ => Conflict(new { mensaje = "No se puede eliminar el vehículo porque tiene servicios registrados." })
+        };
+    }
+
     [HttpGet("{id:int}/historial")]
     public async Task<IActionResult> Historial(int id)
     {

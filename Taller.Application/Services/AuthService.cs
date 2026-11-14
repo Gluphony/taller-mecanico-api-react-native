@@ -26,9 +26,13 @@ public sealed class AuthService(
 
     public async Task<bool> CrearPrimerAdministradorAsync(BootstrapAdminRequest request)
     {
+        var nombreUsuario = request.NombreUsuario.Trim();
+        if (nombreUsuario.Length < 3)
+            throw new ArgumentException("El nombre de usuario debe tener al menos 3 caracteres no vacíos.");
+
         var usuario = new Usuario
         {
-            NombreUsuario = request.NombreUsuario.Trim(),
+            NombreUsuario = nombreUsuario,
             PasswordHash = passwords.CrearHash(request.Contrasena),
             Rol = "Administrador",
             Activo = true

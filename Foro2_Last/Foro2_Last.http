@@ -1,25 +1,128 @@
 @baseUrl = http://localhost:5250
-@token = pega-el-token-de-login-aqui
+@token = PEGA_AQUI_EL_JWT_DEVUELTO_POR_LOGIN
+@clienteId = 1
+@vehiculoId = 1
+@servicioId = 1
 
-### Crear el primer administrador (ejecutar solo una vez; cambia la contraseña)
-POST {{baseUrl}}/api/auth/bootstrap
-Content-Type: application/json
+### Estado de API
+GET {{baseUrl}}/health/ready
 
-{
-  "nombreUsuario": "admin",
-  "contrasena": "CambiaEstaContrasena123!"
-}
-
-### Iniciar sesión
+### Iniciar sesión (primero crea el administrador desde la app)
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "nombreUsuario": "admin",
-  "contrasena": "CambiaEstaContrasena123!"
+  "nombreUsuario": "TU_USUARIO",
+  "contrasena": "TU_CONTRASENA"
 }
 
-### Consultar clientes (pega el token recibido arriba en @token)
-GET {{baseUrl}}/api/clientes
+### Buscar clientes
+GET {{baseUrl}}/api/clientes?buscar=ana
 Authorization: Bearer {{token}}
-Accept: application/json
+
+### Crear cliente
+POST {{baseUrl}}/api/clientes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombreCompleto": "Ana López",
+  "telefono": "8888-0000",
+  "email": "ana@example.com",
+  "direccion": "Managua"
+}
+
+### Actualizar cliente
+PUT {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombreCompleto": "Ana López",
+  "telefono": "8888-0001",
+  "email": "ana@example.com",
+  "direccion": "Managua"
+}
+
+### Consultar vehículos del cliente
+GET {{baseUrl}}/api/vehiculos?clienteId={{clienteId}}
+Authorization: Bearer {{token}}
+
+### Crear vehículo
+POST {{baseUrl}}/api/vehiculos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clienteId": {{clienteId}},
+  "placa": "M123456",
+  "vin": "1HGCM82633A004352",
+  "marca": "Honda",
+  "modelo": "Civic",
+  "anio": 2020,
+  "color": "Azul"
+}
+
+### Actualizar vehículo
+PUT {{baseUrl}}/api/vehiculos/{{vehiculoId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clienteId": {{clienteId}},
+  "placa": "M123456",
+  "vin": "1HGCM82633A004352",
+  "marca": "Honda",
+  "modelo": "Civic",
+  "anio": 2020,
+  "color": "Gris"
+}
+
+### Registrar mantenimiento
+POST {{baseUrl}}/api/mantenimientos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vehiculoId": {{vehiculoId}},
+  "fechaServicio": "2026-11-14T09:00:00",
+  "tipoServicio": "Cambio de aceite",
+  "descripcion": "Cambio de aceite y filtro",
+  "kilometraje": 50000,
+  "costo": 1800.00,
+  "tecnico": "Luis",
+  "recomendaciones": "Revisar frenos en la próxima visita",
+  "proximoMantenimiento": "2027-05-14T09:00:00"
+}
+
+### Consultar detalle del mantenimiento
+GET {{baseUrl}}/api/mantenimientos/{{servicioId}}
+Authorization: Bearer {{token}}
+
+### Historial del vehículo
+GET {{baseUrl}}/api/vehiculos/{{vehiculoId}}/historial
+Authorization: Bearer {{token}}
+
+### Actualizar mantenimiento (no cambia el vehículo del historial)
+PUT {{baseUrl}}/api/mantenimientos/{{servicioId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vehiculoId": {{vehiculoId}},
+  "fechaServicio": "2026-11-14T09:00:00",
+  "tipoServicio": "Cambio de aceite y filtro",
+  "descripcion": "Aceite y filtro reemplazados",
+  "kilometraje": 50100,
+  "costo": 1950.00,
+  "tecnico": "Luis",
+  "recomendaciones": "Revisar frenos en la próxima visita",
+  "proximoMantenimiento": "2027-05-14T09:00:00"
+}
+
+### Eliminar (hazlo solo con IDs que quieras borrar)
+# DELETE {{baseUrl}}/api/mantenimientos/{{servicioId}}
+# Authorization: Bearer {{token}}
+# Un cliente con vehículos y un vehículo con servicios no se pueden eliminar.
+# DELETE {{baseUrl}}/api/vehiculos/{{vehiculoId}}
+# DELETE {{baseUrl}}/api/clientes/{{clienteId}}

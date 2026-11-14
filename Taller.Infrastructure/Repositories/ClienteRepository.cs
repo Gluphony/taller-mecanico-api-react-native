@@ -74,6 +74,25 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
         return await command.ExecuteNonQueryAsync() == 1;
     }
 
+    public async Task<bool> EliminarAsync(int id)
+    {
+        const string sql = """
+            DELETE FROM dbo.Clientes
+            WHERE ClienteId = @Id
+              AND NOT EXISTS
+              (
+                  SELECT 1
+                  FROM dbo.Vehiculos
+                  WHERE ClienteId = @Id
+              );
+            """;
+        await using var connection = connections.Create();
+        await connection.OpenAsync();
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+        return await command.ExecuteNonQueryAsync() == 1;
+    }
+
     private static void AgregarCampos(SqlCommand command, Cliente cliente)
     {
         command.Parameters.Add("@Nombre", SqlDbType.NVarChar, 120).Value = cliente.NombreCompleto;
