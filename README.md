@@ -18,11 +18,7 @@ Backend REST en ASP.NET Core 8, SQL Server y arquitectura por capas, siguiendo l
 
 1. Abre database/create_database.sql en SQL Server Management Studio y ejecútalo.
 2. Ajusta ConnectionStrings:TallerDb en Foro2_Last/appsettings.json si tu instancia de SQL Server no es localhost. En producción, configura la cadena como variable ConnectionStrings__TallerDb y evita guardar credenciales en el repositorio.
-3. Configura Jwt__Key como variable de entorno con al menos 32 bytes. En PowerShell puedes generar una clave para la sesión actual así:
-
-       $env:Jwt__Key = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-
-   En producción configura también Jwt__Issuer, Jwt__Audience, ConnectionStrings__TallerDb y, si corresponde, Cors__AllowedOrigins__0 como secretos o variables del entorno.
+3. En Development, si no se define Jwt__Key, la API genera una clave temporal al iniciar. Los JWT existentes dejan de ser válidos cuando se reinicia la API. En producción configura Jwt__Key como variable de entorno o secreto con al menos 32 bytes; configura también Jwt__Issuer, Jwt__Audience, ConnectionStrings__TallerDb y, si corresponde, Cors__AllowedOrigins__0.
 4. Desde la raíz del repositorio, ejecuta estos comandos de PowerShell:
    dotnet restore .\Foro2_Last\Foro2_Last.csproj
    dotnet run --project .\Foro2_Last\Foro2_Last.csproj

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography;
 using Foro2_Last;
 using Foro2_Last.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -57,6 +58,13 @@ builder.Services.AddScoped<MantenimientoService>();
 builder.Services.AddScoped<AuthService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) && builder.Environment.IsDevelopment())
+{
+    jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    builder.Configuration["Jwt:Key"] = jwtKey;
+    Console.WriteLine("Jwt:Key no está configurada. Se generó una clave temporal para este entorno de desarrollo.");
+}
+
 if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
     throw new InvalidOperationException("Configure Jwt:Key con al menos 32 bytes.");
 
