@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Cliente, Mantenimiento, Vehiculo } from "@/api";
-import { palette, spacing, typeScale } from "@/theme";
+import { palette, typeScale } from "@/theme";
 import { Surface } from "./design";
 
 export function MetricCard({
@@ -82,6 +82,7 @@ export function VehicleCard({
       <Text style={styles.vehicleTitle}>
         {vehiculo.marca} {vehiculo.modelo}
       </Text>
+      <Text style={styles.vehicleId}>UNIDAD / {String(vehiculo.id).padStart(3, "0")}</Text>
       <Text style={styles.recordSub}>
         {vehiculo.clienteNombre || "Cliente"}{vehiculo.anio ? " · " + vehiculo.anio : ""}
       </Text>
@@ -152,75 +153,76 @@ export function EmptyCard({
 }
 
 const styles = StyleSheet.create({
-  metric: { flex: 1, minWidth: 105, padding: 16, borderRadius: 20, minHeight: 126 },
+  metric: { flex: 1, minWidth: 92, padding: 14, minHeight: 126, borderBottomWidth: 5, borderBottomColor: palette.accent },
   metricGlyph: {
-    width: 34, height: 34, borderRadius: 12,
+    width: 34, height: 34, borderWidth: 2, borderColor: palette.ink,
     justifyContent: "center", alignItems: "center",
   },
-  metricGlyphText: { color: palette.ink, fontSize: 17, fontWeight: "700" },
-  metricValue: { color: palette.ink, fontSize: 26, fontWeight: "800", marginTop: 12 },
-  metricLabel: { color: palette.muted, fontSize: typeScale.label, fontWeight: "600", marginTop: 2 },
+  metricGlyphText: { color: palette.ink, fontSize: 17, fontWeight: "900" },
+  metricValue: { color: palette.ink, fontSize: 26, fontWeight: "900", marginTop: 12, fontVariant: ["tabular-nums"] },
+  metricLabel: { color: palette.muted, fontSize: typeScale.label, fontWeight: "800", marginTop: 2, textTransform: "uppercase" },
   recordCard: {
-    flexDirection: "row", alignItems: "center", padding: 14, marginBottom: 10,
-    borderRadius: 18, gap: 12, shadowOpacity: 0.4,
+    flexDirection: "row", alignItems: "center", padding: 14, marginBottom: 12,
+    gap: 12,
   },
   recordIcon: {
-    width: 44, height: 44, borderRadius: 15,
-    backgroundColor: palette.accentSoft, alignItems: "center", justifyContent: "center",
+    width: 44, height: 44, borderWidth: 2, borderColor: palette.ink,
+    backgroundColor: palette.accent, alignItems: "center", justifyContent: "center",
   },
-  recordIconText: { color: palette.ink, fontSize: 14, fontWeight: "800" },
+  recordIconText: { color: palette.ink, fontSize: 14, fontWeight: "900" },
   recordBody: { flex: 1, minWidth: 0 },
-  recordTitle: { color: palette.ink, fontSize: typeScale.body, fontWeight: "700" },
-  recordSub: { color: palette.muted, fontSize: typeScale.label, marginTop: 4 },
+  recordTitle: { color: palette.ink, fontSize: typeScale.body, fontWeight: "900", textTransform: "uppercase" },
+  recordSub: { color: palette.muted, fontSize: typeScale.label, marginTop: 4, fontWeight: "700" },
   recordMeta: { color: palette.inkSoft, fontSize: typeScale.label, marginTop: 5 },
   recordArrow: {
-    width: 30, height: 30, borderRadius: 10,
-    alignItems: "center", justifyContent: "center", backgroundColor: palette.paper,
+    width: 32, height: 32, borderWidth: 2, borderColor: palette.ink,
+    alignItems: "center", justifyContent: "center", backgroundColor: palette.accent,
   },
-  recordArrowText: { color: palette.ink, fontSize: 22, marginTop: -2 },
+  recordArrowText: { color: palette.ink, fontSize: 22, fontWeight: "900", marginTop: -2 },
   pressed: { opacity: 0.8 },
-  vehicleCard: { marginBottom: 12, padding: 18, borderRadius: 20 },
+  vehicleCard: { marginBottom: 12, padding: 16, borderBottomWidth: 5, borderBottomColor: palette.orange },
   vehicleTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   vehicleGlyph: {
-    width: 38, height: 38, backgroundColor: palette.accentSoft,
-    borderRadius: 13, alignItems: "center", justifyContent: "center",
+    width: 38, height: 38, backgroundColor: palette.ink,
+    alignItems: "center", justifyContent: "center",
   },
-  vehicleGlyphText: { fontSize: 17, color: palette.ink },
+  vehicleGlyphText: { fontSize: 17, color: palette.accent, fontWeight: "900" },
   vehiclePlate: {
-    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8,
-    backgroundColor: palette.paper, borderWidth: 1, borderColor: palette.line,
+    paddingVertical: 6, paddingHorizontal: 10,
+    backgroundColor: palette.white, borderWidth: 2, borderColor: palette.ink,
   },
-  vehiclePlateText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2, color: palette.ink },
-  vehicleTitle: { fontSize: typeScale.title, fontWeight: "700", color: palette.ink, marginTop: 14 },
+  vehiclePlateText: { fontSize: 11, fontWeight: "900", letterSpacing: 1.2, color: palette.ink, fontVariant: ["tabular-nums"] },
+  vehicleTitle: { fontSize: typeScale.title, fontWeight: "900", color: palette.ink, marginTop: 14, textTransform: "uppercase" },
+  vehicleId: { color: palette.orange, fontSize: 10, fontWeight: "900", letterSpacing: 1, marginTop: 5 },
   vehicleActions: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    borderTopWidth: 1, borderTopColor: palette.line, marginTop: 16, paddingTop: 12,
+    borderTopWidth: 2, borderTopColor: palette.ink, marginTop: 16, paddingTop: 12,
   },
-  historyButton: { minHeight: 36, justifyContent: "center", paddingRight: 12 },
-  historyButtonText: { color: palette.success, fontSize: typeScale.body, fontWeight: "700" },
-  editButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: palette.paper },
-  editButtonText: { color: palette.inkSoft, fontSize: typeScale.label, fontWeight: "700" },
+  historyButton: { minHeight: 44, justifyContent: "center", paddingRight: 12 },
+  historyButtonText: { color: palette.success, fontSize: typeScale.body, fontWeight: "900", textTransform: "uppercase" },
+  editButton: { minHeight: 40, justifyContent: "center", paddingHorizontal: 12, backgroundColor: palette.accent, borderWidth: 2, borderColor: palette.ink },
+  editButtonText: { color: palette.ink, fontSize: typeScale.label, fontWeight: "900", textTransform: "uppercase" },
   serviceCard: {
     flexDirection: "row", alignItems: "center", gap: 12, padding: 14,
-    marginBottom: 10, borderRadius: 18,
+    marginBottom: 12,
   },
   dateBadge: {
-    width: 46, height: 52, borderRadius: 14, alignItems: "center",
-    justifyContent: "center", backgroundColor: palette.orangeSoft,
+    width: 48, height: 54, borderWidth: 2, borderColor: palette.ink, alignItems: "center",
+    justifyContent: "center", backgroundColor: palette.orange,
   },
-  dateDay: { color: palette.ink, fontSize: 18, fontWeight: "800", lineHeight: 20 },
-  dateMonth: { color: palette.muted, fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
-  costBox: { alignItems: "flex-end", marginLeft: 4 },
-  costLabel: { color: palette.muted, fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
-  costValue: { color: palette.ink, fontSize: 12, fontWeight: "800", marginTop: 4 },
-  emptyCard: { alignItems: "center", paddingVertical: 28, borderRadius: 20 },
+  dateDay: { color: palette.ink, fontSize: 18, fontWeight: "900", lineHeight: 20, fontVariant: ["tabular-nums"] },
+  dateMonth: { color: palette.ink, fontSize: 10, fontWeight: "900", textTransform: "uppercase" },
+  costBox: { alignItems: "flex-end", marginLeft: 4, backgroundColor: palette.accent, padding: 8, borderWidth: 2, borderColor: palette.ink },
+  costLabel: { color: palette.inkSoft, fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  costValue: { color: palette.ink, fontSize: 12, fontWeight: "900", marginTop: 4 },
+  emptyCard: { alignItems: "center", paddingVertical: 28 },
   emptyGlyph: {
-    width: 42, height: 42, borderRadius: 15, backgroundColor: palette.accentSoft,
+    width: 46, height: 46, borderWidth: 2, borderColor: palette.ink, backgroundColor: palette.accent,
     justifyContent: "center", alignItems: "center",
   },
-  emptyGlyphText: { color: palette.ink, fontSize: 24, fontWeight: "500" },
-  emptyTitle: { color: palette.ink, fontWeight: "700", fontSize: typeScale.body, marginTop: 12 },
+  emptyGlyphText: { color: palette.ink, fontSize: 24, fontWeight: "900" },
+  emptyTitle: { color: palette.ink, fontWeight: "900", fontSize: typeScale.body, marginTop: 12, textTransform: "uppercase" },
   emptyDetail: { color: palette.muted, fontSize: typeScale.label, textAlign: "center", marginTop: 6, maxWidth: 250 },
-  emptyAction: { minHeight: 44, paddingHorizontal: 14, justifyContent: "center", marginTop: 8 },
-  emptyActionText: { color: palette.success, fontWeight: "800", fontSize: typeScale.body },
+  emptyAction: { minHeight: 44, paddingHorizontal: 14, justifyContent: "center", marginTop: 8, backgroundColor: palette.ink },
+  emptyActionText: { color: palette.accent, fontWeight: "900", fontSize: typeScale.body, textTransform: "uppercase" },
 });

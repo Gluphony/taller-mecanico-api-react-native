@@ -19,8 +19,7 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
                OR Email LIKE N'%' + @Buscar + N'%'
             ORDER BY NombreCompleto;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Buscar", SqlDbType.NVarChar, 254).Value = (object?)buscar ?? DBNull.Value;
         await using var reader = await command.ExecuteReaderAsync();
@@ -35,8 +34,7 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
             SELECT ClienteId, NombreCompleto, Telefono, Email, Direccion, FechaRegistro
             FROM dbo.Clientes WHERE ClienteId = @Id;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         await using var reader = await command.ExecuteReaderAsync();
@@ -50,8 +48,7 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
             OUTPUT INSERTED.ClienteId
             VALUES (@Nombre, @Telefono, @Email, @Direccion);
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         AgregarCampos(command, cliente);
         var id = Convert.ToInt32(await command.ExecuteScalarAsync());
@@ -66,8 +63,7 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
                 Direccion = @Direccion, ActualizadoEn = SYSUTCDATETIME()
             WHERE ClienteId = @Id;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = cliente.Id;
         AgregarCampos(command, cliente);
@@ -86,8 +82,7 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
                   WHERE ClienteId = @Id
               );
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         return await command.ExecuteNonQueryAsync() == 1;

@@ -8,14 +8,14 @@ import {
   API_BASE_URL, apiRequest, jsonBody, setApiToken,
   type Cliente, type Mantenimiento, type Sesion, type Vehiculo,
 } from "@/api";
-import { Button, BrandMark, Field, SectionHeading, Surface, TabBar } from "@/components/design";
+import { Button, BrandMark, CarSilhouette, Field, SectionHeading, Surface, TabBar } from "@/components/design";
 import { ClientCard, EmptyCard, MetricCard, ServiceCard, VehicleCard } from "@/components/records";
 import {
   ClientForm, ServiceForm, VehicleForm,
   type ClienteValues, type MantenimientoValues, type VehiculoValues,
 } from "@/components/forms";
 import { readToken, removeToken, saveToken } from "@/storage";
-import { palette, typeScale } from "@/theme";
+import { palette } from "@/theme";
 import styles from "./styles";
 
 type Tab = "inicio" | "clientes" | "vehiculos" | "servicios";
@@ -26,12 +26,11 @@ type Overlay =
   | { type: "servicio"; vehiculoId?: number; item?: Mantenimiento }
   | { type: "historial"; vehiculo: Vehiculo }
   | null;
-type Notice = { type: "error" | "success" | "info"; message: string };
+type AppNotice = { type: "error" | "success" | "info"; message: string };
 
 export default function TallerHome() {
   const { width } = useWindowDimensions();
-  const [webReady, setWebReady] = useState(Platform.OS !== "web");
-  const wide = Platform.OS === "web" ? webReady && width >= 760 : width >= 760;
+  const wide = width >= 760;
   const [token, setToken] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [userName, setUserName] = useState("Equipo");
@@ -45,30 +44,13 @@ export default function TallerHome() {
   const [services, setServices] = useState<Mantenimiento[]>([]);
   const [loading, setLoading] = useState(false);
   const [apiIssue, setApiIssue] = useState<string | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const [notice, setNotice] = useState<AppNotice | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    if (Platform.OS === "web") setWebReady(true);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    readToken().then((saved) => {
-      if (!active) return;
-      if (saved) {
-        setApiToken(saved);
-        setToken(saved);
-      }
-      setChecking(false);
-    });
-    return () => { active = false; };
-  }, []);
-
-  const refreshData = useCallback(async () => {
-    if (!token) return;
+  const refreshData = useCallback(async (accessToken: string | null) => {
+    if (!accessToken) return;
     setLoading(true);
     setApiIssue(null);
     try {
@@ -85,11 +67,21 @@ export default function TallerHome() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
-    if (token) void refreshData();
-  }, [token, refreshData]);
+    let active = true;
+    readToken().then(async (saved) => {
+      if (!active) return;
+      if (saved) {
+        setApiToken(saved);
+        setToken(saved);
+        await refreshData(saved);
+      }
+      if (active) setChecking(false);
+    });
+    return () => { active = false; };
+  }, [refreshData]);
 
   async function submitAuth() {
     if (!username.trim() || !password) {
@@ -124,6 +116,7 @@ export default function TallerHome() {
           setNotice({ type: "info", message: "Sesión iniciada; no se pudo guardar en el dispositivo." });
         }
         setPassword("");
+        await refreshData(result.token);
       }
     } catch (error) {
       setNotice({ type: "error", message: error instanceof Error ? error.message : "No fue posible iniciar sesión." });
@@ -146,7 +139,7 @@ export default function TallerHome() {
   async function saved(message: string) {
     setOverlay(null);
     setNotice({ type: "success", message });
-    await refreshData();
+    await refreshData(token);
   }
 
   async function saveClient(values: ClienteValues) {
@@ -274,7 +267,7 @@ export default function TallerHome() {
               <Text style={styles.issueText}>{apiIssue}</Text>
               <Text style={styles.issueUrl}>{API_BASE_URL}</Text>
             </View>
-            <Pressable onPress={() => void refreshData()}><Text style={styles.retry}>Reintentar</Text></Pressable>
+            <Pressable onPress={() => void refreshData(token)}><Text style={styles.retry}>Reintentar</Text></Pressable>
           </View>
         )}
 
@@ -378,7 +371,7 @@ function AuthScreen({
   setUsername: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
-  notice: Notice | null;
+  notice: AppNotice | null;
   busy: boolean;
   wide: boolean;
   onSubmit: () => void;
@@ -389,13 +382,13 @@ function AuthScreen({
         <View style={[styles.authLayout, wide && styles.authLayoutWide]}>
           <View style={styles.authStory}>
             <BrandMark />
-            <View style={styles.storyEyebrow}><View style={styles.onlineDot} /><Text style={styles.storyEyebrowText}>GESTIÓN PARA TALLERES</Text></View>
-            <Text style={styles.authTitle}>Cada visita,{'\n'}bajo control.</Text>
-            <Text style={styles.authDescription}>Clientes, vehículos y mantenimiento conectados en un solo espacio.</Text>
+            <View style={styles.storyEyebrow}><View style={styles.onlineDot} /><Text style={styles.storyEyebrowText}>CONTROL DE SERVICIO / 01</Text></View>
+            <Text style={styles.authTitle}>TU TALLER.{'\n'}EN MARCHA.</Text>
+            <Text style={styles.authDescription}>Clientes, vehículos e historial técnico. Todo registrado en una sola estación.</Text>
             <View style={styles.storyCard}>
-              <Text style={styles.storyGear}>⚙</Text>
-              <Text style={styles.storyCardEyebrow}>TALLER · SERVICIO · CONFIANZA</Text>
-              <Text style={styles.storyCardTitle}>Un mejor día empieza con un buen registro.</Text>
+              <Text style={styles.storyCardEyebrow}>TALLER MECÁNICO / EST. 01</Text>
+              <CarSilhouette style={styles.storyCar} />
+              <Text style={styles.storyCardTitle}>SERVICIO CLARO. HISTORIA COMPLETA.</Text>
             </View>
           </View>
 
@@ -455,13 +448,16 @@ function Dashboard({
       </View>
       <View style={styles.hero}>
         <View style={styles.heroCopy}>
-          <View style={styles.heroPill}><View style={styles.heroDot} /><Text style={styles.heroPillText}>PANEL DEL TALLER</Text></View>
-          <Text style={styles.heroTitle}>El buen servicio{'\n'}también se registra.</Text>
-          <Text style={styles.heroText}>Mantén cada historial listo para la próxima visita.</Text>
+          <View style={styles.heroPill}><View style={styles.heroDot} /><Text style={styles.heroPillText}>BAY 01 / LIVE</Text></View>
+          <Text style={styles.heroTitle}>GARAGE BAJO{'\n'}CONTROL.</Text>
+          <Text style={styles.heroText}>Cada unidad tiene su propietario y su historial técnico.</Text>
           <Button title="Registrar servicio" onPress={onAddService} small />
         </View>
-        <Text style={styles.heroGear}>⚙</Text>
-        <View style={styles.heroOrbit} />
+        <View style={styles.heroCarPanel}>
+          <Text style={styles.heroCarLabel}>SERVICE BAY</Text>
+          <CarSilhouette compact />
+          <Text style={styles.heroCarCode}>TM / 001</Text>
+        </View>
       </View>
       <View style={styles.metrics}>
         <MetricCard value={clients.length} label="Clientes" glyph="◉" tint={palette.accentSoft} />
@@ -542,7 +538,7 @@ function SearchField({ value, onChange, placeholder }: {
   );
 }
 
-function Notice({ notice, onClose }: { notice: Notice; onClose?: () => void }) {
+function Notice({ notice, onClose }: { notice: AppNotice; onClose?: () => void }) {
   const color = notice.type === "error" ? palette.danger : notice.type === "success" ? palette.success : palette.ink;
   const backgroundColor = notice.type === "error" ? palette.dangerSoft : notice.type === "success" ? palette.successSoft : palette.accentSoft;
   return (
@@ -564,7 +560,7 @@ function EditorModal({
   vehicles: Vehiculo[];
   services: Mantenimiento[];
   saving: boolean;
-  notice: Notice | null;
+  notice: AppNotice | null;
   onClose: () => void;
   onCloseNotice: () => void;
   onSaveClient: (values: ClienteValues) => void;

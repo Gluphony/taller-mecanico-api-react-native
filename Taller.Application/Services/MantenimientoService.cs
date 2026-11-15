@@ -19,18 +19,7 @@ public sealed class MantenimientoService(
         ValidarDatos(request);
         if (await vehiculos.ObtenerAsync(request.VehiculoId) is null) return null;
 
-        var servicio = await repository.CrearAsync(new ServicioMantenimiento
-        {
-            VehiculoId = request.VehiculoId,
-            FechaServicio = request.FechaServicio,
-            TipoServicio = request.TipoServicio.Trim(),
-            Descripcion = request.Descripcion.Trim(),
-            Kilometraje = request.Kilometraje,
-            Costo = request.Costo,
-            Tecnico = Limpiar(request.Tecnico),
-            Recomendaciones = Limpiar(request.Recomendaciones),
-            ProximoMantenimiento = request.ProximoMantenimiento
-        });
+        var servicio = await repository.CrearAsync(CrearEntidad(request));
         return Mapear(servicio);
     }
 
@@ -42,19 +31,7 @@ public sealed class MantenimientoService(
             throw new ArgumentException("No se puede cambiar el vehículo de un servicio existente.");
 
         ValidarDatos(request);
-        return await repository.ActualizarAsync(new ServicioMantenimiento
-        {
-            Id = id,
-            VehiculoId = actual.VehiculoId,
-            FechaServicio = request.FechaServicio,
-            TipoServicio = request.TipoServicio.Trim(),
-            Descripcion = request.Descripcion.Trim(),
-            Kilometraje = request.Kilometraje,
-            Costo = request.Costo,
-            Tecnico = Limpiar(request.Tecnico),
-            Recomendaciones = Limpiar(request.Recomendaciones),
-            ProximoMantenimiento = request.ProximoMantenimiento
-        });
+        return await repository.ActualizarAsync(CrearEntidad(request, actual.VehiculoId, id));
     }
 
     public Task<bool> EliminarAsync(int id) => repository.EliminarAsync(id);
@@ -84,6 +61,23 @@ public sealed class MantenimientoService(
 
     private static MantenimientoDto? MapearNullable(ServicioMantenimiento? x) =>
         x is null ? null : Mapear(x);
+
+    private static ServicioMantenimiento CrearEntidad(
+        GuardarMantenimientoRequest request,
+        int? vehiculoId = null,
+        int id = 0) => new()
+    {
+        Id = id,
+        VehiculoId = vehiculoId ?? request.VehiculoId,
+        FechaServicio = request.FechaServicio,
+        TipoServicio = request.TipoServicio.Trim(),
+        Descripcion = request.Descripcion.Trim(),
+        Kilometraje = request.Kilometraje,
+        Costo = request.Costo,
+        Tecnico = Limpiar(request.Tecnico),
+        Recomendaciones = Limpiar(request.Recomendaciones),
+        ProximoMantenimiento = request.ProximoMantenimiento
+    };
 
     private static string? Limpiar(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

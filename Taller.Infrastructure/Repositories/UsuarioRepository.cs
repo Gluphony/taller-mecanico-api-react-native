@@ -11,8 +11,7 @@ public sealed class UsuarioRepository(SqlConnectionFactory connections) : IUsuar
     public async Task<bool> HayUsuariosAsync()
     {
         const string sql = "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.Usuarios) THEN 1 ELSE 0 END;";
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         return Convert.ToInt32(await command.ExecuteScalarAsync()) == 1;
     }
@@ -23,8 +22,7 @@ public sealed class UsuarioRepository(SqlConnectionFactory connections) : IUsuar
             FROM dbo.Usuarios
             WHERE NombreUsuario = @NombreUsuario;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@NombreUsuario", SqlDbType.NVarChar, 80).Value = nombreUsuario;
         await using var reader = await command.ExecuteReaderAsync();
@@ -41,8 +39,7 @@ public sealed class UsuarioRepository(SqlConnectionFactory connections) : IUsuar
 
     public async Task<bool> CrearPrimerAdministradorAsync(Usuario usuario)
     {
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         try
         {

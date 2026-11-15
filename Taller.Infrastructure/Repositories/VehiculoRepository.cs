@@ -25,8 +25,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
                    OR c.NombreCompleto LIKE N'%' + @Buscar + N'%')
             ORDER BY v.Placa;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@ClienteId", SqlDbType.Int).Value = (object?)clienteId ?? DBNull.Value;
         command.Parameters.Add("@Buscar", SqlDbType.NVarChar, 120).Value = (object?)buscar ?? DBNull.Value;
@@ -38,8 +37,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
 
     public async Task<Vehiculo?> ObtenerAsync(int id)
     {
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(SelectFields + " WHERE v.VehiculoId = @Id;", connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         await using var reader = await command.ExecuteReaderAsync();
@@ -53,8 +51,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
             OUTPUT INSERTED.VehiculoId
             VALUES (@ClienteId, @Placa, @Vin, @Marca, @Modelo, @Anio, @Color);
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         AgregarCampos(command, vehiculo);
         var id = Convert.ToInt32(await command.ExecuteScalarAsync());
@@ -70,8 +67,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
                 ActualizadoEn = SYSUTCDATETIME()
             WHERE VehiculoId = @Id;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = vehiculo.Id;
         AgregarCampos(command, vehiculo);
@@ -90,8 +86,7 @@ public sealed class VehiculoRepository(SqlConnectionFactory connections) : IVehi
                   WHERE VehiculoId = @Id
               );
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         return await command.ExecuteNonQueryAsync() == 1;

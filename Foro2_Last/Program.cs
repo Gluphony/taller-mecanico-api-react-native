@@ -124,8 +124,7 @@ app.MapGet("/health/ready", async (
 {
     try
     {
-        await using var connection = connections.Create();
-        await connection.OpenAsync(cancellationToken);
+        await using var connection = await connections.OpenAsync(cancellationToken);
         return Results.Ok(new { estado = "lista", baseDatos = "conectada" });
     }
     catch (Exception exception)

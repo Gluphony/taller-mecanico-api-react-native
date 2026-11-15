@@ -23,9 +23,7 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
     {
         if (await repository.ObtenerAsync(id) is null ||
             await clientes.ObtenerAsync(request.ClienteId) is null) return false;
-        var vehiculo = CrearEntidad(request);
-        vehiculo.Id = id;
-        return await repository.ActualizarAsync(vehiculo);
+        return await repository.ActualizarAsync(CrearEntidad(request, id));
     }
 
     public async Task<bool> AsociarClienteAsync(int id, int clienteId)
@@ -44,7 +42,7 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
             : ResultadoEliminacion.TieneRegistrosRelacionados;
     }
 
-    private static Vehiculo CrearEntidad(GuardarVehiculoRequest request)
+    private static Vehiculo CrearEntidad(GuardarVehiculoRequest request, int id = 0)
     {
         var placa = request.Placa.Trim().ToUpperInvariant();
         var marca = request.Marca.Trim();
@@ -61,6 +59,7 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
 
         return new Vehiculo
         {
+            Id = id,
             ClienteId = request.ClienteId,
             Placa = placa,
             Vin = vin,

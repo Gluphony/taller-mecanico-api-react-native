@@ -12,30 +12,13 @@ public sealed class ClienteService(IClienteRepository repository)
     public async Task<ClienteDto?> ObtenerAsync(int id) =>
         MapearNullable(await repository.ObtenerAsync(id));
 
-    public async Task<ClienteDto> CrearAsync(GuardarClienteRequest request)
-    {
-        var nombre = ValidarNombre(request.NombreCompleto);
-        var cliente = new Cliente
-        {
-            NombreCompleto = nombre,
-            Telefono = Limpiar(request.Telefono),
-            Email = Limpiar(request.Email)?.ToLowerInvariant(),
-            Direccion = Limpiar(request.Direccion)
-        };
-        return Mapear(await repository.CrearAsync(cliente));
-    }
+    public async Task<ClienteDto> CrearAsync(GuardarClienteRequest request) =>
+        Mapear(await repository.CrearAsync(CrearEntidad(request)));
 
     public async Task<bool> ActualizarAsync(int id, GuardarClienteRequest request)
     {
         if (await repository.ObtenerAsync(id) is null) return false;
-        return await repository.ActualizarAsync(new Cliente
-        {
-            Id = id,
-            NombreCompleto = ValidarNombre(request.NombreCompleto),
-            Telefono = Limpiar(request.Telefono),
-            Email = Limpiar(request.Email)?.ToLowerInvariant(),
-            Direccion = Limpiar(request.Direccion)
-        });
+        return await repository.ActualizarAsync(CrearEntidad(request, id));
     }
 
     public async Task<ResultadoEliminacion> EliminarAsync(int id)
@@ -57,6 +40,15 @@ public sealed class ClienteService(IClienteRepository repository)
 
     private static string? Limpiar(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static Cliente CrearEntidad(GuardarClienteRequest request, int id = 0) => new()
+    {
+        Id = id,
+        NombreCompleto = ValidarNombre(request.NombreCompleto),
+        Telefono = Limpiar(request.Telefono),
+        Email = Limpiar(request.Email)?.ToLowerInvariant(),
+        Direccion = Limpiar(request.Direccion)
+    };
 
     private static string ValidarNombre(string value)
     {

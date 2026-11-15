@@ -23,8 +23,7 @@ public sealed class MantenimientoRepository(SqlConnectionFactory connections) : 
             WHERE (@VehiculoId IS NULL OR s.VehiculoId = @VehiculoId)
             ORDER BY s.FechaServicio DESC, s.ServicioId DESC;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@VehiculoId", SqlDbType.Int).Value = (object?)vehiculoId ?? DBNull.Value;
         await using var reader = await command.ExecuteReaderAsync();
@@ -35,8 +34,7 @@ public sealed class MantenimientoRepository(SqlConnectionFactory connections) : 
 
     public async Task<ServicioMantenimiento?> ObtenerAsync(int id)
     {
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(SelectFields + " WHERE s.ServicioId = @Id;", connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         await using var reader = await command.ExecuteReaderAsync();
@@ -54,8 +52,7 @@ public sealed class MantenimientoRepository(SqlConnectionFactory connections) : 
                 (@VehiculoId, @FechaServicio, @TipoServicio, @Descripcion, @Kilometraje,
                  @Costo, @Tecnico, @Recomendaciones, @ProximoMantenimiento);
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         AgregarParametros(command, servicio);
         var id = Convert.ToInt32(await command.ExecuteScalarAsync());
@@ -77,8 +74,7 @@ public sealed class MantenimientoRepository(SqlConnectionFactory connections) : 
                 ActualizadoEn = SYSUTCDATETIME()
             WHERE ServicioId = @Id;
             """;
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = servicio.Id;
         AgregarParametros(command, servicio);
@@ -88,8 +84,7 @@ public sealed class MantenimientoRepository(SqlConnectionFactory connections) : 
     public async Task<bool> EliminarAsync(int id)
     {
         const string sql = "DELETE FROM dbo.ServiciosMantenimiento WHERE ServicioId = @Id;";
-        await using var connection = connections.Create();
-        await connection.OpenAsync();
+        await using var connection = await connections.OpenAsync();
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
         return await command.ExecuteNonQueryAsync() == 1;
