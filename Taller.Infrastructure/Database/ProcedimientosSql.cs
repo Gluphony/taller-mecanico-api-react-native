@@ -27,6 +27,7 @@ internal static class ProcedimientosSql
     public const string UsuariosObtenerPorNombre = "dbo.Usuarios_ObtenerPorNombre";
     public const string UsuariosExiste = "dbo.Usuarios_Existe";
     public const string UsuariosCrearPrimerAdministrador = "dbo.Usuarios_CrearPrimerAdministrador";
+    public const string UsuariosCrear = "dbo.Usuarios_Crear";
 
     public static SqlCommand CrearComando(SqlConnection conexion, string procedimiento) =>
         new(procedimiento, conexion) { CommandType = CommandType.StoredProcedure };

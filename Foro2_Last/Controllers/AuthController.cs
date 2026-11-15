@@ -42,4 +42,27 @@ public sealed class AuthController(AuthService auth) : ControllerBase
             ? Unauthorized(new { mensaje = "Usuario o contraseña incorrectos." })
             : Ok(resultado);
     }
+
+    [Authorize(Roles = "Administrador")]
+    [HttpPost("usuarios")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CrearUsuario(CrearUsuarioRequest request)
+    {
+        if (!await auth.CrearUsuarioAsync(request))
+            return Conflict(new
+            {
+                codigo = "usuario_ya_registrado",
+                mensaje = "Ya existe una cuenta con ese nombre de usuario."
+            });
+
+        return StatusCode(StatusCodes.Status201Created, new
+        {
+            mensaje = "Cuenta creada. El usuario ya puede iniciar sesión.",
+            nombreUsuario = request.NombreUsuario.Trim(),
+            rol = "Empleado"
+        });
+    }
 }

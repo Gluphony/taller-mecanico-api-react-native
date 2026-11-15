@@ -389,3 +389,40 @@ BEGIN
     END CATCH;
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.Usuarios_Crear
+    @NombreUsuario NVARCHAR(80),
+    @PasswordHash NVARCHAR(256),
+    @Rol NVARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.Usuarios WITH (UPDLOCK, HOLDLOCK)
+            WHERE NombreUsuario = @NombreUsuario
+        )
+        BEGIN
+            COMMIT TRANSACTION;
+            SELECT CONVERT(BIT, 0) AS Creado;
+            RETURN;
+        END;
+
+        INSERT INTO dbo.Usuarios (NombreUsuario, PasswordHash, Rol, Activo)
+        VALUES (@NombreUsuario, @PasswordHash, @Rol, 1);
+
+        COMMIT TRANSACTION;
+        SELECT CONVERT(BIT, 1) AS Creado;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO

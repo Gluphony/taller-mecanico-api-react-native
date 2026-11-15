@@ -57,6 +57,17 @@ Si la salida de compilación dice que `Taller.Application.dll` o `Taller.Infrast
 
 La app consulta `GET /api/auth/status`: si la base no tiene cuentas, muestra el formulario para crear el primer administrador; si ya tiene una, muestra el inicio de sesión. `POST /api/auth/bootstrap` crea ese primer acceso una sola vez y pide una contraseña de 12 a 200 caracteres. Después se inicia sesión con `POST /api/auth/login`. No hay usuario ni contraseña de demostración. Las rutas de datos usan el JWT en `Authorization: Bearer <token>`.
 
+Para registrar otra cuenta, inicia sesión con el administrador y envía `POST /api/auth/usuarios` con ese JWT:
+
+```json
+{
+  "nombreUsuario": "mecanico1",
+  "contrasena": "una-contrasena-segura"
+}
+```
+
+Solo un token con rol `Administrador` puede llamar el endpoint. La cuenta nueva se registra como `Empleado`. El nombre debe tener entre 3 y 80 caracteres y la contraseña entre 12 y 200. Una cuenta de empleado no puede crear otras; los nombres duplicados devuelven HTTP 409.
+
 ## CRUD disponible
 
 El CRUD también está definido en SQL Server: `Clientes_Listar`, `Clientes_ObtenerPorId`, `Clientes_Crear`, `Clientes_Actualizar` y `Clientes_Eliminar`; los procedimientos de vehículos y mantenimientos siguen el mismo patrón. Las búsquedas y el historial usan parámetros, y las eliminaciones respetan las relaciones.

@@ -8,7 +8,7 @@ public sealed class AuthRequestExampleFilter : IOperationFilter
     public void Apply(Microsoft.OpenApi.Models.OpenApiOperation operation, OperationFilterContext context)
     {
         var route = context.ApiDescription.RelativePath?.Split('?')[0].TrimEnd('/');
-        if (route is not ("api/auth/bootstrap" or "api/auth/login")) return;
+        if (route is not ("api/auth/bootstrap" or "api/auth/login" or "api/auth/usuarios")) return;
         if (operation.RequestBody is not { } requestBody ||
             !requestBody.Content.TryGetValue("application/json", out var body) ||
             body is null) return;

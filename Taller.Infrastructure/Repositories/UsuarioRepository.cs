@@ -44,4 +44,14 @@ public sealed class UsuarioRepository(SqlConnectionFactory connections) : IUsuar
         command.Parameters.Add("@PasswordHash", SqlDbType.NVarChar, 256).Value = usuario.PasswordHash;
         return Convert.ToBoolean(await command.ExecuteScalarAsync());
     }
+
+    public async Task<bool> CrearUsuarioAsync(Usuario usuario)
+    {
+        await using var connection = await connections.OpenAsync();
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.UsuariosCrear);
+        command.Parameters.Add("@NombreUsuario", SqlDbType.NVarChar, 80).Value = usuario.NombreUsuario;
+        command.Parameters.Add("@PasswordHash", SqlDbType.NVarChar, 256).Value = usuario.PasswordHash;
+        command.Parameters.Add("@Rol", SqlDbType.NVarChar, 30).Value = usuario.Rol;
+        return Convert.ToBoolean(await command.ExecuteScalarAsync());
+    }
 }

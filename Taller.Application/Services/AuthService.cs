@@ -1,7 +1,7 @@
+using System.Text.RegularExpressions;
 using Taller.Application.DTOs;
 using Taller.Application.Interfaces;
 using Taller.Domain;
-using System.Text.RegularExpressions;
 
 namespace Taller.Application.Services;
 
@@ -55,6 +55,31 @@ public sealed class AuthService(
             Activo = true
         };
         return await usuarios.CrearPrimerAdministradorAsync(usuario);
+    }
+
+    public async Task<bool> CrearUsuarioAsync(CrearUsuarioRequest request)
+    {
+        if (request is null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.NombreUsuario))
+            throw new ArgumentException("El usuario es obligatorio.");
+
+        var nombreUsuario = request.NombreUsuario.Trim();
+        if (nombreUsuario.Length is < 3 or > 80 ||
+            !Regex.IsMatch(nombreUsuario, @"^[A-Za-z0-9][A-Za-z0-9._-]*$"))
+            throw new ArgumentException("El usuario debe tener entre 3 y 80 caracteres: letras sin acento, números, punto, guion o guion bajo.");
+
+        if (string.IsNullOrWhiteSpace(request.Contrasena) || request.Contrasena.Length is < 12 or > 200)
+            throw new ArgumentException("La contraseña debe tener entre 12 y 200 caracteres.");
+
+        var usuario = new Usuario
+        {
+            NombreUsuario = nombreUsuario,
+            PasswordHash = passwords.CrearHash(request.Contrasena),
+            Rol = "Empleado",
+            Activo = true
+        };
+
+        return await usuarios.CrearUsuarioAsync(usuario);
     }
 }
 

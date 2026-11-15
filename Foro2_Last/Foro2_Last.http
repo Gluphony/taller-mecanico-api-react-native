@@ -16,6 +16,16 @@ Content-Type: application/json
   "contrasena": "TU_CONTRASENA"
 }
 
+### Crear una cuenta de empleado (solo administrador)
+POST {{baseUrl}}/api/auth/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombreUsuario": "USUARIO_NUEVO",
+  "contrasena": "CONTRASENA_SEGURA_DE_12_CARACTERES"
+}
+
 ### Buscar clientes
 GET {{baseUrl}}/api/clientes?buscar=ana
 Authorization: Bearer {{token}}
