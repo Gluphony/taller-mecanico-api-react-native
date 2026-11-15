@@ -13,7 +13,7 @@
     "android": {
       "package": "com.taller.mecanico",
       "adaptiveIcon": {
-        "backgroundColor": "#18352F",
+        "backgroundColor": "#0C1014",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F4F4EF",
+          "backgroundColor": "#E8EDF1",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

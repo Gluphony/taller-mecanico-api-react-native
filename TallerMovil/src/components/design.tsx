@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
 import {
   ActivityIndicator,
   Pressable,
@@ -22,23 +21,6 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
           <Text style={styles.brandCaption}>GESTIÓN DE SERVICIO</Text>
         </View>
       )}
-    </View>
-  );
-}
-
-export function CarSilhouette({ compact = false, style }: { compact?: boolean; style?: StyleProp<ViewStyle> }) {
-  return (
-    <View accessibilityLabel="Silueta de automóvil" style={[styles.car, compact && styles.carCompact, style]}>
-      <View style={[styles.carRoof, compact && styles.carRoofCompact]} />
-      <View style={[styles.carWindow, compact && styles.carWindowCompact]} />
-      <View style={[styles.carBody, compact && styles.carBodyCompact]} />
-      <View style={[styles.carLight, compact && styles.carLightCompact]} />
-      <View style={[styles.carWheel, styles.carWheelLeft, compact && styles.carWheelCompact, compact && styles.carWheelCompactLeft]}>
-        <View style={[styles.carWheelHub, compact && styles.carWheelHubCompact]} />
-      </View>
-      <View style={[styles.carWheel, styles.carWheelRight, compact && styles.carWheelCompact, compact && styles.carWheelCompactRight]}>
-        <View style={[styles.carWheelHub, compact && styles.carWheelHubCompact]} />
-      </View>
     </View>
   );
 }
@@ -83,6 +65,7 @@ export function Button({
         <Text style={[
           styles.buttonText,
           primary && styles.buttonTextPrimary,
+          secondary && styles.buttonTextSecondary,
           variant === "quiet" && styles.buttonTextQuiet,
           danger && styles.buttonTextDanger,
         ]}>
@@ -164,9 +147,11 @@ export function SectionHeading({
 export function TabBar({
   active,
   onChange,
+  wide = false,
 }: {
   active: "inicio" | "clientes" | "vehiculos" | "servicios";
   onChange: (tab: "inicio" | "clientes" | "vehiculos" | "servicios") => void;
+  wide?: boolean;
 }) {
   const items = [
     { id: "inicio" as const, icon: "⌂", label: "Inicio" },
@@ -175,7 +160,7 @@ export function TabBar({
     { id: "servicios" as const, icon: "↻", label: "Servicios" },
   ];
   return (
-    <View style={styles.tabDock}>
+    <View style={[styles.tabDock, wide && styles.tabDockWide]}>
       {items.map((item) => {
         const selected = active === item.id;
         return (
@@ -184,9 +169,9 @@ export function TabBar({
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => onChange(item.id)}
-            style={styles.tabItem}
+            style={[styles.tabItem, wide && styles.tabItemWide]}
           >
-            <View style={[styles.tabIcon, selected && styles.tabIconSelected]}>
+            <View style={[styles.tabIcon, wide && styles.tabIconWide, selected && styles.tabIconSelected]}>
               <Text style={[styles.tabGlyph, selected && styles.tabGlyphSelected]}>
                 {item.icon}
               </Text>
@@ -202,82 +187,66 @@ export function TabBar({
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 11 },
   brandCompact: { justifyContent: "center" },
   brandIcon: {
-    height: 44, width: 44, borderWidth: 2, borderColor: palette.ink,
-    backgroundColor: palette.accent, alignItems: "center", justifyContent: "center",
+    height: 42, width: 42, borderRadius: 12,
+    backgroundColor: palette.ink, alignItems: "center", justifyContent: "center",
   },
-  brandGlyph: { color: palette.ink, fontSize: 22, fontWeight: "800" },
-  brandName: { color: palette.ink, fontSize: 14, fontWeight: "900", letterSpacing: 2 },
-  brandCaption: { color: palette.muted, fontSize: 9, fontWeight: "800", letterSpacing: 1.2, marginTop: 3 },
-  car: { width: 176, height: 76, position: "relative" },
-  carCompact: { width: 96, height: 50 },
-  carRoof: { position: "absolute", left: 42, top: 1, width: 88, height: 34, backgroundColor: palette.accent, borderWidth: 2, borderColor: palette.ink, borderBottomWidth: 0, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  carRoofCompact: { left: 23, width: 50, height: 22, borderWidth: 2, borderBottomWidth: 0 },
-  carWindow: { position: "absolute", left: 51, top: 9, width: 70, height: 22, backgroundColor: palette.ink },
-  carWindowCompact: { left: 29, top: 7, width: 38, height: 14 },
-  carBody: { position: "absolute", left: 5, right: 5, top: 29, height: 29, backgroundColor: palette.accent, borderWidth: 2, borderColor: palette.ink, zIndex: 1 },
-  carBodyCompact: { left: 3, right: 3, top: 21, height: 22, borderWidth: 2 },
-  carLight: { position: "absolute", right: 7, top: 40, width: 8, height: 7, backgroundColor: palette.orange, zIndex: 2 },
-  carLightCompact: { right: 5, top: 28, width: 6, height: 5 },
-  carWheel: { position: "absolute", top: 47, width: 25, height: 25, borderWidth: 2, borderColor: palette.ink, backgroundColor: palette.ink, alignItems: "center", justifyContent: "center", zIndex: 3 },
-  carWheelLeft: { left: 27 },
-  carWheelRight: { right: 27 },
-  carWheelCompact: { top: 35, width: 18, height: 18, borderWidth: 2 },
-  carWheelCompactLeft: { left: 14 },
-  carWheelCompactRight: { right: 14 },
-  carWheelHub: { width: 9, height: 9, backgroundColor: palette.white },
-  carWheelHubCompact: { width: 6, height: 6 },
+  brandGlyph: { color: palette.white, fontSize: 21, fontWeight: "800" },
+  brandName: { color: palette.ink, fontSize: 14, fontWeight: "800", letterSpacing: 1.5 },
+  brandCaption: { color: palette.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1.1, marginTop: 3 },
   button: {
-    minHeight: 50, paddingHorizontal: 18, borderWidth: 2, borderColor: palette.ink,
+    minHeight: 48, paddingHorizontal: 18, borderWidth: 1, borderColor: palette.accent,
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    shadowColor: palette.shadow, shadowOpacity: 1, shadowRadius: 0,
-    shadowOffset: { width: 4, height: 4 }, elevation: 3,
+    borderRadius: 11,
   },
-  buttonSmall: { minHeight: 44, paddingHorizontal: 14 },
+  buttonSmall: { minHeight: 42, paddingHorizontal: 14 },
   buttonPrimary: { backgroundColor: palette.accent },
-  buttonSecondary: { backgroundColor: palette.white },
-  buttonDanger: { backgroundColor: palette.dangerSoft },
-  buttonQuiet: { backgroundColor: "transparent", borderWidth: 0, shadowOpacity: 0, elevation: 0 },
-  buttonDisabled: { opacity: 0.62 },
-  buttonPressed: { opacity: 0.9, transform: [{ translateX: 3 }, { translateY: 3 }] },
-  buttonText: { color: palette.ink, fontSize: typeScale.body, fontWeight: "900", letterSpacing: 0.3 },
-  buttonTextPrimary: { color: palette.inkDeep },
+  buttonSecondary: { backgroundColor: palette.white, borderColor: palette.line },
+  buttonDanger: { backgroundColor: palette.dangerSoft, borderColor: palette.dangerSoft },
+  buttonQuiet: { backgroundColor: "transparent", borderWidth: 0 },
+  buttonDisabled: { opacity: 0.55 },
+  buttonPressed: { opacity: 0.82 },
+  buttonText: { color: palette.white, fontSize: typeScale.body, fontWeight: "700" },
+  buttonTextPrimary: { color: palette.white },
+  buttonTextSecondary: { color: palette.ink },
   buttonTextQuiet: { color: palette.inkSoft },
   buttonTextDanger: { color: palette.danger },
   field: { gap: 8, marginBottom: spacing.lg },
-  fieldLabel: { color: palette.inkSoft, fontSize: typeScale.label, fontWeight: "900", letterSpacing: 1 },
+  fieldLabel: { color: palette.inkSoft, fontSize: typeScale.label, fontWeight: "700", letterSpacing: 0.25 },
   input: {
-    minHeight: 52, borderWidth: 2, borderColor: palette.ink,
-    backgroundColor: palette.white,
+    minHeight: 50, borderWidth: 1, borderColor: palette.line,
+    backgroundColor: palette.white, borderRadius: 11,
     paddingHorizontal: 16, paddingVertical: 12,
     fontSize: typeScale.body, color: palette.ink,
   },
   inputMultiline: { minHeight: 88, textAlignVertical: "top" },
   surface: {
     backgroundColor: palette.white, padding: 16,
-    borderWidth: 2, borderColor: palette.ink,
-    shadowColor: palette.shadow, shadowOpacity: 1, shadowRadius: 0,
-    shadowOffset: { width: 4, height: 4 }, elevation: 3,
+    borderWidth: 1, borderColor: palette.line, borderRadius: 15,
+    shadowColor: palette.shadow, shadowOpacity: 0.08, shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 }, elevation: 2,
   },
   sectionHeading: {
     flexDirection: "row", justifyContent: "space-between",
-    alignItems: "center", marginBottom: 14, borderBottomWidth: 2,
-    borderBottomColor: palette.ink, paddingBottom: 10,
+    alignItems: "center", marginBottom: 14, borderBottomWidth: 1,
+    borderBottomColor: palette.line, paddingBottom: 10,
   },
-  sectionTitle: { color: palette.ink, fontSize: typeScale.title, fontWeight: "900", textTransform: "uppercase", letterSpacing: 0.3 },
-  sectionAction: { color: palette.success, fontSize: typeScale.body, fontWeight: "900" },
+  sectionTitle: { color: palette.ink, fontSize: typeScale.title, fontWeight: "700" },
+  sectionAction: { color: palette.accent, fontSize: typeScale.body, fontWeight: "700" },
   tabDock: {
     flexDirection: "row", backgroundColor: palette.ink,
     paddingHorizontal: 8, paddingTop: 8, paddingBottom: 10,
-    borderTopWidth: 3, borderTopColor: palette.accent,
   },
-  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4, minHeight: 56 },
-  tabIcon: { width: 42, height: 30, alignItems: "center", justifyContent: "center" },
+  tabDockWide: { width: 224, flexDirection: "column", alignItems: "stretch", paddingHorizontal: 14, paddingTop: 24, paddingBottom: 18, gap: 7 },
+  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4, minHeight: 56, borderRadius: 12 },
+  tabItemWide: { flex: 0, minHeight: 52, flexDirection: "row", justifyContent: "flex-start", gap: 12, paddingHorizontal: 12 },
+  tabIcon: { width: 42, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 9 },
+  tabIconWide: { width: 34, height: 34 },
   tabIconSelected: { backgroundColor: palette.accent },
-  tabGlyph: { fontSize: 18, color: palette.white, fontWeight: "900" },
-  tabGlyphSelected: { color: palette.ink },
-  tabLabel: { fontSize: 10, color: palette.white, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
-  tabLabelSelected: { color: palette.accent, fontWeight: "900" },
+  tabGlyph: { fontSize: 18, color: "#A5B4C8", fontWeight: "700" },
+  tabGlyphSelected: { color: palette.white },
+  tabLabel: { fontSize: 10, color: "#A5B4C8", fontWeight: "600", letterSpacing: 0.2 },
+  tabLabelSelected: { color: palette.white, fontWeight: "700" },
 });

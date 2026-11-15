@@ -5,7 +5,7 @@ Interfaz React Native con Expo, conectada a la API ASP.NET Core y SQL Server.
 ## Navegador
 
 1. Inicia la API según las instrucciones del README de la raíz.
-2. Desde esta carpeta, ejecuta `npm install` si faltan dependencias.
+2. Desde esta carpeta, ejecuta `npm ci` para instalar las versiones registradas en `package-lock.json`.
 3. Ejecuta `npm run web` y abre la URL local que muestra Expo.
 
 La app web llama por defecto a `http://localhost:5250`.
@@ -14,7 +14,7 @@ La app web llama por defecto a `http://localhost:5250`.
 
 Ejecuta `npm run android` con un emulador abierto. El emulador usa por defecto `http://10.0.2.2:5250`. En un teléfono físico configura `EXPO_PUBLIC_API_URL` con la IP local del equipo y haz que la API escuche en `0.0.0.0:5250`; ambos dispositivos deben estar en la misma red.
 
-El token se conserva con SecureStore en Android/iOS y en almacenamiento local del navegador.
+El token se conserva con SecureStore en Android/iOS y en almacenamiento local del navegador. La imagen decorativa de portada viene de Unsplash; el resto de la interfaz se muestra aunque esa imagen no cargue.
 
 ## Funciones
 

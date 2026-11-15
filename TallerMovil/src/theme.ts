@@ -1,20 +1,20 @@
 export const palette = {
-  ink: "#171715",
-  inkDeep: "#090909",
-  inkSoft: "#44433D",
-  paper: "#E5E1D6",
-  white: "#F8F6EF",
-  line: "#171715",
-  muted: "#716D63",
-  accent: "#E5FF00",
-  accentSoft: "#F1F5C9",
-  orange: "#F05A28",
-  orangeSoft: "#FFE2D4",
-  success: "#17673E",
-  successSoft: "#DDE9D9",
-  danger: "#B52B21",
-  dangerSoft: "#FFE0DB",
-  shadow: "#171715",
+  ink: "#111922",
+  inkDeep: "#0C1014",
+  inkSoft: "#46515B",
+  paper: "#E8EDF1",
+  white: "#F8FAFB",
+  line: "#D6DEE5",
+  muted: "#7C8995",
+  accent: "#6A7A99",
+  accentSoft: "#E1E7EE",
+  orange: "#D6A69B",
+  orangeSoft: "#F2E6E2",
+  success: "#55796B",
+  successSoft: "#E2ECE7",
+  danger: "#A85650",
+  dangerSoft: "#F4E7E5",
+  shadow: "#667582",
 };
 
 export const spacing = {
@@ -32,3 +32,7 @@ export const typeScale = {
   title: 18,
   display: 28,
 };
+
+// Photo by Lorenzo Hamers, via Unsplash. Used as a decorative workshop image.
+export const workshopImage =
+  "https://images.unsplash.com/photo-1681956961107-b0ba4261dbd4?auto=format&fit=crop&w=1800&q=80";

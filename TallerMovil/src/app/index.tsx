@@ -3,19 +3,20 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable,
   ScrollView, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   API_BASE_URL, apiRequest, jsonBody, setApiToken,
   type Cliente, type Mantenimiento, type Sesion, type Vehiculo,
 } from "@/api";
-import { Button, BrandMark, CarSilhouette, Field, SectionHeading, Surface, TabBar } from "@/components/design";
+import { Button, BrandMark, Field, SectionHeading, Surface, TabBar } from "@/components/design";
 import { ClientCard, EmptyCard, MetricCard, ServiceCard, VehicleCard } from "@/components/records";
 import {
   ClientForm, ServiceForm, VehicleForm,
   type ClienteValues, type MantenimientoValues, type VehiculoValues,
 } from "@/components/forms";
 import { readToken, removeToken, saveToken } from "@/storage";
-import { palette } from "@/theme";
+import { palette, workshopImage } from "@/theme";
 import styles from "./styles";
 
 type Tab = "inicio" | "clientes" | "vehiculos" | "servicios";
@@ -271,7 +272,8 @@ export default function TallerHome() {
           </View>
         )}
 
-        <View style={styles.body}>
+        <View style={[styles.body, wide && styles.bodyWide]}>
+          {wide && <TabBar active={tab} wide onChange={(next) => { setTab(next); setSearch(""); }} />}
           <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, wide && styles.contentWide]} keyboardShouldPersistTaps="handled">
             {tab === "inicio" && (
               <Dashboard
@@ -343,7 +345,7 @@ export default function TallerHome() {
               </View>
             )}
           </ScrollView>
-          <TabBar active={tab} onChange={(next) => { setTab(next); setSearch(""); }} />
+          {!wide && <TabBar active={tab} onChange={(next) => { setTab(next); setSearch(""); }} />}
         </View>
       </View>
 
@@ -382,13 +384,17 @@ function AuthScreen({
         <View style={[styles.authLayout, wide && styles.authLayoutWide]}>
           <View style={styles.authStory}>
             <BrandMark />
-            <View style={styles.storyEyebrow}><View style={styles.onlineDot} /><Text style={styles.storyEyebrowText}>CONTROL DE SERVICIO / 01</Text></View>
-            <Text style={styles.authTitle}>TU TALLER.{'\n'}EN MARCHA.</Text>
-            <Text style={styles.authDescription}>Clientes, vehículos e historial técnico. Todo registrado en una sola estación.</Text>
+            <View style={styles.storyEyebrow}><View style={styles.onlineDot} /><Text style={styles.storyEyebrowText}>GESTIÓN DE TALLER</Text></View>
+            <Text style={styles.authTitle}>Precisión en cada servicio.</Text>
+            <Text style={styles.authDescription}>Clientes, vehículos e historial técnico conectados en una plataforma clara para el trabajo diario.</Text>
             <View style={styles.storyCard}>
-              <Text style={styles.storyCardEyebrow}>TALLER MECÁNICO / EST. 01</Text>
-              <CarSilhouette style={styles.storyCar} />
-              <Text style={styles.storyCardTitle}>SERVICIO CLARO. HISTORIA COMPLETA.</Text>
+              <Image source={workshopImage} style={styles.storyImage} contentFit="cover" transition={400} accessibilityLabel="Automóvil en un taller mecánico" />
+              <View style={styles.storyOverlay} />
+              <View style={styles.storyCardTop}>
+                <Text style={styles.storyCardEyebrow}>TALLER · SERVICIO · CONFIANZA</Text>
+                <Text style={styles.storyCardIndex}>01 / 04</Text>
+              </View>
+              <Text style={styles.storyCardTitle}>Cada unidad, con su historia al día.</Text>
             </View>
           </View>
 
@@ -447,22 +453,23 @@ function Dashboard({
         {loading && <ActivityIndicator color={palette.success} />}
       </View>
       <View style={styles.hero}>
+        <Image source={workshopImage} style={styles.heroImage} contentFit="cover" transition={400} accessibilityLabel="Vehículo en mantenimiento dentro del taller" />
+        <View style={styles.heroShade} />
         <View style={styles.heroCopy}>
-          <View style={styles.heroPill}><View style={styles.heroDot} /><Text style={styles.heroPillText}>BAY 01 / LIVE</Text></View>
-          <Text style={styles.heroTitle}>GARAGE BAJO{'\n'}CONTROL.</Text>
-          <Text style={styles.heroText}>Cada unidad tiene su propietario y su historial técnico.</Text>
-          <Button title="Registrar servicio" onPress={onAddService} small />
+          <View style={styles.heroPill}><View style={styles.heroDot} /><Text style={styles.heroPillText}>OPERACIÓN DEL TALLER</Text></View>
+          <Text style={styles.heroTitle}>Servicio preciso.{'\n'}Historial completo.</Text>
+          <Text style={styles.heroText}>Consulta vehículos, registra cada visita y conserva el trabajo del taller organizado.</Text>
+          <Button title="Registrar servicio" onPress={onAddService} variant="secondary" small />
         </View>
-        <View style={styles.heroCarPanel}>
-          <Text style={styles.heroCarLabel}>SERVICE BAY</Text>
-          <CarSilhouette compact />
-          <Text style={styles.heroCarCode}>TM / 001</Text>
+        <View style={styles.heroFoot}>
+          <Text style={styles.heroFootText}>TALLER MECÁNICO · SERVICIO INTEGRAL</Text>
+          <Text style={styles.heroFootText}>01 / 04</Text>
         </View>
       </View>
       <View style={styles.metrics}>
-        <MetricCard value={clients.length} label="Clientes" glyph="◉" tint={palette.accentSoft} />
-        <MetricCard value={vehicles.length} label="Vehículos" glyph="▰" tint={palette.orangeSoft} />
-        <MetricCard value={services.length} label="Servicios" glyph="↻" tint={palette.successSoft} />
+        <MetricCard value={clients.length} label="Clientes" glyph="C" tint={palette.accentSoft} />
+        <MetricCard value={vehicles.length} label="Vehículos" glyph="V" tint={palette.orangeSoft} />
+        <MetricCard value={services.length} label="Servicios" glyph="S" tint={palette.successSoft} />
       </View>
       <SectionHeading title="Accesos rápidos" />
       <View style={styles.quickList}>
