@@ -10,18 +10,10 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
 {
     public async Task<IReadOnlyList<Cliente>> ListarAsync(string? buscar)
     {
-        const string sql = """
-            SELECT ClienteId, NombreCompleto, Telefono, Email, Direccion, FechaRegistro
-            FROM dbo.Clientes
-            WHERE @Buscar IS NULL
-               OR NombreCompleto LIKE N'%' + @Buscar + N'%'
-               OR Telefono LIKE N'%' + @Buscar + N'%'
-               OR Email LIKE N'%' + @Buscar + N'%'
-            ORDER BY NombreCompleto;
-            """;
         await using var connection = await connections.OpenAsync();
-        await using var command = new SqlCommand(sql, connection);
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.ClientesListar);
         command.Parameters.Add("@Buscar", SqlDbType.NVarChar, 254).Value = (object?)buscar ?? DBNull.Value;
+
         await using var reader = await command.ExecuteReaderAsync();
         var clientes = new List<Cliente>();
         while (await reader.ReadAsync()) clientes.Add(Mapear(reader));
@@ -30,67 +22,46 @@ public sealed class ClienteRepository(SqlConnectionFactory connections) : IClien
 
     public async Task<Cliente?> ObtenerAsync(int id)
     {
-        const string sql = """
-            SELECT ClienteId, NombreCompleto, Telefono, Email, Direccion, FechaRegistro
-            FROM dbo.Clientes WHERE ClienteId = @Id;
-            """;
         await using var connection = await connections.OpenAsync();
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.ClientesObtenerPorId);
+        command.Parameters.Add("@ClienteId", SqlDbType.Int).Value = id;
+
         await using var reader = await command.ExecuteReaderAsync();
         return await reader.ReadAsync() ? Mapear(reader) : null;
     }
 
     public async Task<Cliente> CrearAsync(Cliente cliente)
     {
-        const string sql = """
-            INSERT INTO dbo.Clientes (NombreCompleto, Telefono, Email, Direccion)
-            OUTPUT INSERTED.ClienteId
-            VALUES (@Nombre, @Telefono, @Email, @Direccion);
-            """;
         await using var connection = await connections.OpenAsync();
-        await using var command = new SqlCommand(sql, connection);
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.ClientesCrear);
         AgregarCampos(command, cliente);
-        var id = Convert.ToInt32(await command.ExecuteScalarAsync());
-        return (await ObtenerAsync(id))!;
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+            throw new InvalidOperationException("El procedimiento de creación no devolvió el cliente.");
+        return Mapear(reader);
     }
 
     public async Task<bool> ActualizarAsync(Cliente cliente)
     {
-        const string sql = """
-            UPDATE dbo.Clientes
-            SET NombreCompleto = @Nombre, Telefono = @Telefono, Email = @Email,
-                Direccion = @Direccion, ActualizadoEn = SYSUTCDATETIME()
-            WHERE ClienteId = @Id;
-            """;
         await using var connection = await connections.OpenAsync();
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.Add("@Id", SqlDbType.Int).Value = cliente.Id;
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.ClientesActualizar);
+        command.Parameters.Add("@ClienteId", SqlDbType.Int).Value = cliente.Id;
         AgregarCampos(command, cliente);
-        return await command.ExecuteNonQueryAsync() == 1;
+        return Convert.ToBoolean(await command.ExecuteScalarAsync());
     }
 
     public async Task<bool> EliminarAsync(int id)
     {
-        const string sql = """
-            DELETE FROM dbo.Clientes
-            WHERE ClienteId = @Id
-              AND NOT EXISTS
-              (
-                  SELECT 1
-                  FROM dbo.Vehiculos
-                  WHERE ClienteId = @Id
-              );
-            """;
         await using var connection = await connections.OpenAsync();
-        await using var command = new SqlCommand(sql, connection);
-        command.Parameters.Add("@Id", SqlDbType.Int).Value = id;
-        return await command.ExecuteNonQueryAsync() == 1;
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.ClientesEliminar);
+        command.Parameters.Add("@ClienteId", SqlDbType.Int).Value = id;
+        return Convert.ToBoolean(await command.ExecuteScalarAsync());
     }
 
     private static void AgregarCampos(SqlCommand command, Cliente cliente)
     {
-        command.Parameters.Add("@Nombre", SqlDbType.NVarChar, 120).Value = cliente.NombreCompleto;
+        command.Parameters.Add("@NombreCompleto", SqlDbType.NVarChar, 120).Value = cliente.NombreCompleto;
         command.Parameters.Add("@Telefono", SqlDbType.NVarChar, 30).Value = (object?)cliente.Telefono ?? DBNull.Value;
         command.Parameters.Add("@Email", SqlDbType.NVarChar, 254).Value = (object?)cliente.Email ?? DBNull.Value;
         command.Parameters.Add("@Direccion", SqlDbType.NVarChar, 250).Value = (object?)cliente.Direccion ?? DBNull.Value;

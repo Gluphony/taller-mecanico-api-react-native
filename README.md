@@ -2,6 +2,8 @@
 
 Aplicación de gestión de clientes, vehículos y servicios de mantenimiento. Incluye una API REST en ASP.NET Core 8, una base de datos relacional Microsoft SQL Server y un cliente multiplataforma React Native con Expo.
 
+La base se divide en esquema (`database/create_database.sql`) y operaciones (`database/create_procedures.sql`). La API llama esos procedimientos desde sus repositorios; no contiene consultas CRUD SQL pegadas en C#.
+
 ## Clonar el repositorio
 
 ```powershell
@@ -13,9 +15,9 @@ Requisitos: .NET 8 SDK, Node.js 24.3 o posterior de la rama 24, npm y SQL Server
 
 ## Base de datos
 
-1. Abre `database/create_database.sql` en SQL Server Management Studio.
-2. Ejecútalo con una cuenta que pueda crear bases de datos.
-3. El script crea `TallerMecanicoDb` y sus tablas. Se puede volver a ejecutar sin borrar registros.
+1. Abre y ejecuta `database/create_database.sql` en SQL Server Management Studio con una cuenta que pueda crear bases de datos.
+2. Abre y ejecuta `database/create_procedures.sql` en la misma instancia. Instala o actualiza el CRUD que usa la API.
+3. Ambos archivos se pueden volver a ejecutar: el primero conserva los registros y el segundo reemplaza las definiciones de procedimientos.
 
 La configuración compartida usa la instancia local predeterminada (`localhost`). Si tu servidor usa una instancia con nombre, configura la variable para la sesión actual de PowerShell antes de iniciar la API:
 
@@ -51,6 +53,10 @@ Si la salida de compilación dice que `Taller.Application.dll` o `Taller.Infrast
 ## Primer acceso
 
 Crea el primer administrador una sola vez con `POST /api/auth/bootstrap`, usando una contraseña de al menos 12 caracteres. Después inicia sesión con `POST /api/auth/login`. Las rutas de datos usan el JWT en `Authorization: Bearer <token>`. La aplicación también incluye estos formularios.
+
+## CRUD disponible
+
+El CRUD también está definido en SQL Server: `Clientes_Listar`, `Clientes_ObtenerPorId`, `Clientes_Crear`, `Clientes_Actualizar` y `Clientes_Eliminar`; los procedimientos de vehículos y mantenimientos siguen el mismo patrón. Las búsquedas y el historial usan parámetros, y las eliminaciones respetan las relaciones.
 
 ## API disponible
 

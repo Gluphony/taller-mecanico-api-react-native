@@ -28,10 +28,9 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
 
     public async Task<bool> AsociarClienteAsync(int id, int clienteId)
     {
-        var vehiculo = await repository.ObtenerAsync(id);
-        if (vehiculo is null || await clientes.ObtenerAsync(clienteId) is null) return false;
-        vehiculo.ClienteId = clienteId;
-        return await repository.ActualizarAsync(vehiculo);
+        if (await repository.ObtenerAsync(id) is null ||
+            await clientes.ObtenerAsync(clienteId) is null) return false;
+        return await repository.AsociarClienteAsync(id, clienteId);
     }
 
     public async Task<ResultadoEliminacion> EliminarAsync(int id)
