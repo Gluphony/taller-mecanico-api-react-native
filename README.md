@@ -66,7 +66,7 @@ Para registrar otra cuenta, inicia sesión con el administrador y envía `POST /
 }
 ```
 
-Solo un token con rol `Administrador` puede llamar el endpoint. La cuenta nueva se registra como `Empleado`. El nombre debe tener entre 3 y 80 caracteres y la contraseña entre 12 y 200. Una cuenta de empleado no puede crear otras; los nombres duplicados devuelven HTTP 409.
+Solo un token con rol `Administrador` puede llamar el endpoint. En la app, ese rol ve la pestaña **Equipo** y puede crear cuentas desde el formulario. La cuenta nueva se registra como `Empleado`. El nombre debe tener entre 3 y 80 caracteres y la contraseña entre 12 y 200. Una cuenta de empleado no puede crear otras; los nombres duplicados devuelven HTTP 409.
 
 ## CRUD disponible
 

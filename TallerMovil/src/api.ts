@@ -50,6 +50,11 @@ export type EstadoAcceso = {
   requiereConfiguracionInicial: boolean;
 };
 
+export type PerfilSesion = {
+  nombreUsuario: string;
+  rol: string;
+};
+
 const defaultBaseUrl = Platform.OS === "android"
   ? "http://10.0.2.2:5250"
   : "http://localhost:5250";

@@ -153,16 +153,19 @@ export function TabBar({
   active,
   onChange,
   wide = false,
+  showTeam = false,
 }: {
-  active: "inicio" | "clientes" | "vehiculos" | "servicios";
-  onChange: (tab: "inicio" | "clientes" | "vehiculos" | "servicios") => void;
+  active: "inicio" | "clientes" | "vehiculos" | "servicios" | "equipo";
+  onChange: (tab: "inicio" | "clientes" | "vehiculos" | "servicios" | "equipo") => void;
   wide?: boolean;
+  showTeam?: boolean;
 }) {
   const items = [
     { id: "inicio" as const, icon: "⌂", label: "Inicio" },
     { id: "clientes" as const, icon: "◉", label: "Clientes" },
     { id: "vehiculos" as const, icon: "▰", label: "Vehículos" },
     { id: "servicios" as const, icon: "↻", label: "Servicios" },
+    ...(showTeam ? [{ id: "equipo" as const, icon: "◎", label: "Equipo" }] : []),
   ];
   return (
     <View style={[styles.tabDock, wide && styles.tabDockWide]}>

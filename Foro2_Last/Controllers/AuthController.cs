@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Taller.Application.DTOs;
 using Taller.Application.Services;
 
@@ -42,6 +43,16 @@ public sealed class AuthController(AuthService auth) : ControllerBase
             ? Unauthorized(new { mensaje = "Usuario o contraseña incorrectos." })
             : Ok(resultado);
     }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult SesionActual() => Ok(new
+    {
+        nombreUsuario = User.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty,
+        rol = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty
+    });
 
     [Authorize(Roles = "Administrador")]
     [HttpPost("usuarios")]

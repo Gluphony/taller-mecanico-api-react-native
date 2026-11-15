@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   API_BASE_URL, apiRequest, jsonBody, setApiToken,
-  type Cliente, type EstadoAcceso, type Mantenimiento, type Sesion, type Vehiculo,
+  type Cliente, type EstadoAcceso, type Mantenimiento, type PerfilSesion, type Sesion, type Vehiculo,
 } from "@/api";
 import { Button, BrandMark, Field, SectionHeading, Surface, TabBar } from "@/components/design";
 import { ClientCard, EmptyCard, MetricCard, ServiceCard, VehicleCard } from "@/components/records";
@@ -16,10 +16,11 @@ import {
   type ClienteValues, type MantenimientoValues, type VehiculoValues,
 } from "@/components/forms";
 import { readToken, removeToken, saveToken } from "@/storage";
+import { EmployeeAccessScreen } from "@/components/team";
 import { palette, workshopImage } from "@/theme";
 import styles from "./styles";
 
-type Tab = "inicio" | "clientes" | "vehiculos" | "servicios";
+type Tab = "inicio" | "clientes" | "vehiculos" | "servicios" | "equipo";
 type AuthMode = "login" | "bootstrap";
 type Overlay =
   | { type: "cliente"; item?: Cliente }
@@ -35,6 +36,7 @@ export default function TallerHome() {
   const [token, setToken] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [userName, setUserName] = useState("Equipo");
+  const [userRole, setUserRole] = useState("");
   const [mode, setMode] = useState<AuthMode>("login");
   const [setupIssue, setSetupIssue] = useState<string | null>(null);
   const [setupBusy, setSetupBusy] = useState(false);
@@ -81,6 +83,14 @@ export default function TallerHome() {
         if (saved) {
           setApiToken(saved);
           setToken(saved);
+          try {
+            const profile = await apiRequest<PerfilSesion>("/api/auth/me");
+            if (!active) return;
+            setUserName(profile.nombreUsuario || "Equipo");
+            setUserRole(profile.rol);
+          } catch {
+            if (active) setUserRole("");
+          }
           await refreshData(saved);
         } else {
           const state = await apiRequest<EstadoAcceso>("/api/auth/status");
@@ -141,6 +151,7 @@ export default function TallerHome() {
         setApiToken(result.token);
         setToken(result.token);
         setUserName(result.nombreUsuario || normalizedUsername);
+        setUserRole(result.rol);
         try {
           await saveToken(result.token);
         } catch {
@@ -167,11 +178,30 @@ export default function TallerHome() {
     await removeToken();
     setApiToken(null);
     setToken(null);
+    setUserRole("");
     setClients([]);
     setVehicles([]);
     setServices([]);
     setTab("inicio");
     setNotice(null);
+  }
+
+  async function createEmployee(nombreUsuario: string, contrasena: string): Promise<boolean> {
+    setSaving(true);
+    setNotice(null);
+    try {
+      const result = await apiRequest<{ mensaje: string }>("/api/auth/usuarios", {
+        method: "POST",
+        body: jsonBody({ nombreUsuario, contrasena }),
+      });
+      setNotice({ type: "success", message: result.mensaje || "Cuenta de empleado creada." });
+      return true;
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "No se pudo crear la cuenta." });
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saved(message: string) {
@@ -335,7 +365,7 @@ export default function TallerHome() {
         )}
 
         <View style={[styles.body, wide && styles.bodyWide]}>
-          {wide && <TabBar active={tab} wide onChange={(next) => { setTab(next); setSearch(""); }} />}
+          {wide && <TabBar active={tab} wide showTeam={userRole === "Administrador"} onChange={(next) => { setTab(next); setSearch(""); }} />}
           <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, wide && styles.contentWide]} keyboardShouldPersistTaps="handled">
             {tab === "inicio" && (
               <Dashboard
@@ -407,8 +437,12 @@ export default function TallerHome() {
                       onPress={() => q ? setSearch("") : vehicles.length ? openNewService() : openNewVehicle()} />}
               </View>
             )}
+
+            {tab === "equipo" && userRole === "Administrador" && (
+              <EmployeeAccessScreen saving={saving} wide={wide} onCreate={createEmployee} />
+            )}
           </ScrollView>
-          {!wide && <TabBar active={tab} onChange={(next) => { setTab(next); setSearch(""); }} />}
+          {!wide && <TabBar active={tab} showTeam={userRole === "Administrador"} onChange={(next) => { setTab(next); setSearch(""); }} />}
         </View>
       </View>
 
