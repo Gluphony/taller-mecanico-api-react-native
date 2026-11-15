@@ -85,6 +85,7 @@ export function Field({
   keyboardType,
   multiline = false,
   autoCapitalize = "sentences",
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -94,6 +95,7 @@ export function Field({
   keyboardType?: "default" | "email-address" | "phone-pad" | "numeric" | "decimal-pad";
   multiline?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  maxLength?: number;
 }) {
   return (
     <View style={styles.field}>
@@ -107,6 +109,9 @@ export function Field({
         keyboardType={keyboardType}
         multiline={multiline}
         autoCapitalize={autoCapitalize}
+        autoCorrect={false}
+        maxLength={maxLength}
+        accessibilityLabel={label}
         style={[styles.input, multiline && styles.inputMultiline]}
       />
     </View>
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 48, paddingHorizontal: 18, borderWidth: 1, borderColor: palette.accent,
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    borderRadius: 11,
+    borderRadius: 8,
   },
   buttonSmall: { minHeight: 42, paddingHorizontal: 14 },
   buttonPrimary: { backgroundColor: palette.accent },
@@ -217,16 +222,16 @@ const styles = StyleSheet.create({
   fieldLabel: { color: palette.inkSoft, fontSize: typeScale.label, fontWeight: "700", letterSpacing: 0.25 },
   input: {
     minHeight: 50, borderWidth: 1, borderColor: palette.line,
-    backgroundColor: palette.white, borderRadius: 11,
+    backgroundColor: palette.white, borderRadius: 8,
     paddingHorizontal: 16, paddingVertical: 12,
     fontSize: typeScale.body, color: palette.ink,
   },
   inputMultiline: { minHeight: 88, textAlignVertical: "top" },
   surface: {
     backgroundColor: palette.white, padding: 16,
-    borderWidth: 1, borderColor: palette.line, borderRadius: 15,
-    shadowColor: palette.shadow, shadowOpacity: 0.08, shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 }, elevation: 2,
+    borderWidth: 1, borderColor: palette.line, borderRadius: 10,
+    shadowColor: palette.shadow, shadowOpacity: 0.06, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 1,
   },
   sectionHeading: {
     flexDirection: "row", justifyContent: "space-between",
@@ -245,8 +250,8 @@ const styles = StyleSheet.create({
   tabIcon: { width: 42, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 9 },
   tabIconWide: { width: 34, height: 34 },
   tabIconSelected: { backgroundColor: palette.accent },
-  tabGlyph: { fontSize: 18, color: "#A5B4C8", fontWeight: "700" },
+  tabGlyph: { fontSize: 18, color: "#C5C4B9", fontWeight: "700" },
   tabGlyphSelected: { color: palette.white },
-  tabLabel: { fontSize: 10, color: "#A5B4C8", fontWeight: "600", letterSpacing: 0.2 },
+  tabLabel: { fontSize: 10, color: "#C5C4B9", fontWeight: "600", letterSpacing: 0.2 },
   tabLabelSelected: { color: palette.white, fontWeight: "700" },
 });

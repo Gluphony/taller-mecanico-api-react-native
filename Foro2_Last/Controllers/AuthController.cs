@@ -10,13 +10,23 @@ namespace Foro2_Last.Controllers;
 public sealed class AuthController(AuthService auth) : ControllerBase
 {
     [AllowAnonymous]
+    [HttpGet("status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> EstadoInicial() =>
+        Ok(new { requiereConfiguracionInicial = await auth.RequiereConfiguracionInicialAsync() });
+
+    [AllowAnonymous]
     [HttpPost("bootstrap")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CrearPrimerAdministrador(BootstrapAdminRequest request)
     {
         if (!await auth.CrearPrimerAdministradorAsync(request))
-            return Conflict(new { mensaje = "El administrador inicial ya fue creado." });
+            return Conflict(new
+            {
+                codigo = "acceso_ya_configurado",
+                mensaje = "Esta base de datos ya tiene una cuenta. Inicia sesión con el usuario que la configuró."
+            });
         return StatusCode(StatusCodes.Status201Created,
             new { mensaje = "Administrador inicial creado. Ya puede iniciar sesión." });
     }

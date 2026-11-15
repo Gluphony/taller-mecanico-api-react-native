@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using Foro2_Last;
 using Foro2_Last.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Foro2_Last.Swagger;
 using Taller.Application.Interfaces;
 using Taller.Application.Services;
 using Taller.Infrastructure.Database;
@@ -13,10 +15,23 @@ using Taller.Infrastructure.Security;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .SelectMany(entry => entry.Value!.Errors.Select(error => error.ErrorMessage))
+            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .Distinct();
+        return new BadRequestObjectResult(new { mensaje = string.Join(" ", errors) });
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new() { Title = "Taller Mecánico API", Version = "v1" });
+    options.OperationFilter<AuthRequestExampleFilter>();
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",

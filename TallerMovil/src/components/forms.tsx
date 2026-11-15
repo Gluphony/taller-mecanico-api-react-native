@@ -38,14 +38,16 @@ function ChoiceChips<T extends { id: number }>({
   selectedId,
   onSelect,
   labelFor,
+  emptyMessage = "No hay registros disponibles.",
 }: {
   items: T[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   labelFor: (item: T) => string;
+  emptyMessage?: string;
 }) {
   if (items.length === 0) {
-    return <Text style={styles.noChoices}>Primero registra un cliente.</Text>;
+    return <Text style={styles.noChoices}>{emptyMessage}</Text>;
   }
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.choiceScroll}>
@@ -103,6 +105,12 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+function validWorkshopDate(value: string) {
+  if (!validDate(value)) return false;
+  const year = Number(value.slice(0, 4));
+  return year >= 1886 && year <= 2100;
+}
+
 export function ClientForm({
   initial,
   onClose,
@@ -120,15 +128,22 @@ export function ClientForm({
   const [telefono, setTelefono] = useState(initial?.telefono || "");
   const [email, setEmail] = useState(initial?.email || "");
   const [direccion, setDireccion] = useState(initial?.direccion || "");
+  const validName = nombre.trim().length >= 2 && nombre.trim().length <= 120;
+  const phoneDigits = telefono.replace(/\D/g, "").length;
+  const validPhone = !telefono.trim() || (/^\+?[0-9][0-9 ().-]*[0-9]$/.test(telefono.trim()) && phoneDigits >= 7 && phoneDigits <= 15);
   const validEmail = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   return (
     <View style={styles.form}>
-      <Text style={styles.formIntro}>Los campos se guardan en el expediente del cliente.</Text>
-      <Field label="NOMBRE COMPLETO" value={nombre} onChangeText={setNombre} placeholder="Ej. Ana López" />
-      <Field label="TELÉFONO" value={telefono} onChangeText={setTelefono} placeholder="8888-0000" keyboardType="phone-pad" />
-      <Field label="CORREO ELECTRÓNICO" value={email} onChangeText={setEmail} placeholder="ana@correo.com" keyboardType="email-address" autoCapitalize="none" />
-      <Field label="DIRECCIÓN" value={direccion} onChangeText={setDireccion} placeholder="Ciudad, barrio y referencia" multiline />
+      <Text style={styles.formIntro}>Datos de contacto para localizar al cliente y sus vehículos.</Text>
+      <Field label="Nombre completo" value={nombre} onChangeText={setNombre} placeholder="Ej. Ana López" maxLength={120} />
+      <Field label="Teléfono (opcional)" value={telefono} onChangeText={setTelefono} placeholder="+505 8888-0000" keyboardType="phone-pad" maxLength={30} />
+      <Field label="Correo electrónico (opcional)" value={email} onChangeText={setEmail} placeholder="ana@correo.com" keyboardType="email-address" autoCapitalize="none" maxLength={254} />
+      <Field label="Dirección (opcional)" value={direccion} onChangeText={setDireccion} placeholder="Ciudad, barrio y referencia" multiline maxLength={250} />
+      {!validName && <Text style={styles.validationText}>Escribe un nombre de 2 a 120 caracteres.</Text>}
+      {!validPhone && <Text style={styles.validationText}>El teléfono debe tener 7 a 15 dígitos.</Text>}
+      {!validEmail && <Text style={styles.validationText}>Escribe un correo electrónico válido.</Text>}
+      {direccion.trim().length > 250 && <Text style={styles.validationText}>La dirección no puede superar 250 caracteres.</Text>}
       <View style={styles.actions}>
         <Button title="Cancelar" variant="secondary" onPress={onClose} />
         <View style={styles.actionPrimary}>
@@ -136,11 +151,10 @@ export function ClientForm({
             title={initial ? "Guardar cambios" : "Guardar cliente"}
             onPress={() => onSave({ nombreCompleto: nombre.trim(), telefono: telefono.trim(), email: email.trim(), direccion: direccion.trim() })}
             loading={saving}
-            disabled={nombre.trim().length < 2 || !validEmail}
+            disabled={!validName || !validPhone || !validEmail || direccion.trim().length > 250}
           />
         </View>
       </View>
-      {!validEmail && <Text style={styles.validationText}>Escribe un correo electrónico válido.</Text>}
       {initial && <DeleteControl label="Eliminar cliente" note="Solo se puede eliminar si no tiene vehículos asociados." onDelete={() => onDelete(initial.id)} saving={saving} />}
     </View>
   );
@@ -171,8 +185,13 @@ export function VehicleForm({
   const [anio, setAnio] = useState(initial?.anio ? String(initial.anio) : "");
   const [color, setColor] = useState(initial?.color || "");
   const year = anio.trim() ? Number(anio) : null;
-  const validYear = year === null || (Number.isInteger(year) && year >= 1886 && year <= 2100);
-  const validVin = !vin.trim() || (vin.trim().length >= 11 && vin.trim().length <= 17);
+  const latestModelYear = new Date().getFullYear() + 1;
+  const validYear = year === null || (Number.isInteger(year) && year >= 1886 && year <= latestModelYear);
+  const normalizedVin = vin.trim().toUpperCase();
+  const validVin = !normalizedVin || /^[A-HJ-NPR-Z0-9]{11,17}$/.test(normalizedVin);
+  const validPlate = /^[A-Z0-9][A-Z0-9 -]{0,10}[A-Z0-9]$/.test(placa.trim().toUpperCase());
+  const validMakeAndModel = marca.trim().length >= 1 && marca.trim().length <= 60 && modelo.trim().length >= 1 && modelo.trim().length <= 60;
+  const validColor = color.trim().length <= 40;
 
   return (
     <View style={styles.form}>
@@ -183,25 +202,31 @@ export function VehicleForm({
         selectedId={clienteId}
         onSelect={setClienteId}
         labelFor={(item) => item.nombreCompleto}
+        emptyMessage="Primero registra un cliente para asignar este vehículo."
       />
       <View style={styles.formRow}>
         <View style={styles.formHalf}>
-          <Field label="PLACA" value={placa} onChangeText={setPlaca} placeholder="M123456" autoCapitalize="characters" />
+          <Field label="Placa" value={placa} onChangeText={setPlaca} placeholder="M123456" autoCapitalize="characters" maxLength={12} />
         </View>
         <View style={styles.formHalf}>
-          <Field label="AÑO" value={anio} onChangeText={setAnio} placeholder="2020" keyboardType="numeric" />
+          <Field label="Año del modelo" value={anio} onChangeText={setAnio} placeholder={String(new Date().getFullYear())} keyboardType="numeric" maxLength={4} />
         </View>
       </View>
       <View style={styles.formRow}>
         <View style={styles.formHalf}>
-          <Field label="MARCA" value={marca} onChangeText={setMarca} placeholder="Toyota" />
+          <Field label="Marca" value={marca} onChangeText={setMarca} placeholder="Toyota" maxLength={60} />
         </View>
         <View style={styles.formHalf}>
-          <Field label="MODELO" value={modelo} onChangeText={setModelo} placeholder="Corolla" />
+          <Field label="Modelo" value={modelo} onChangeText={setModelo} placeholder="Corolla" maxLength={60} />
         </View>
       </View>
-      <Field label="VIN (OPCIONAL)" value={vin} onChangeText={setVin} placeholder="Número de chasis" autoCapitalize="characters" />
-      <Field label="COLOR" value={color} onChangeText={setColor} placeholder="Gris" />
+      <Field label="VIN (opcional)" value={vin} onChangeText={setVin} placeholder="17 letras y números" autoCapitalize="characters" maxLength={17} />
+      <Field label="Color (opcional)" value={color} onChangeText={setColor} placeholder="Gris" maxLength={40} />
+      {!validPlate && <Text style={styles.validationText}>La placa debe tener entre 2 y 12 letras, números, espacios o guiones.</Text>}
+      {!validMakeAndModel && <Text style={styles.validationText}>La marca y el modelo son obligatorios (máximo 60 caracteres).</Text>}
+      {!validYear && <Text style={styles.validationText}>El año debe estar entre 1886 y {latestModelYear}.</Text>}
+      {!validVin && <Text style={styles.validationText}>El VIN debe tener 11 a 17 caracteres; no usa I, O ni Q.</Text>}
+      {!validColor && <Text style={styles.validationText}>El color no puede superar 40 caracteres.</Text>}
       <View style={styles.actions}>
         <Button title="Cancelar" variant="secondary" onPress={onClose} />
         <View style={styles.actionPrimary}>
@@ -210,19 +235,17 @@ export function VehicleForm({
             onPress={() => onSave({
               clienteId: clienteId || 0,
               placa: placa.trim(),
-              vin: vin.trim(),
+              vin: normalizedVin,
               marca: marca.trim(),
               modelo: modelo.trim(),
               anio: anio.trim() ? Number(anio) : null,
               color: color.trim(),
             })}
             loading={saving}
-            disabled={!clienteId || placa.trim().length < 2 || placa.trim().length > 12 || !marca.trim() || marca.trim().length > 60 || !modelo.trim() || modelo.trim().length > 60 || !validYear || !validVin}
+            disabled={!clienteId || !validPlate || !validMakeAndModel || !validYear || !validVin || !validColor}
           />
         </View>
       </View>
-      {!validYear && <Text style={styles.validationText}>El año debe estar entre 1886 y 2100.</Text>}
-      {!validVin && <Text style={styles.validationText}>El VIN debe tener entre 11 y 17 caracteres.</Text>}
       {initial && <DeleteControl label="Eliminar vehículo" note="El vehículo debe quedar sin servicios registrados para eliminarse." onDelete={() => onDelete(initial.id)} saving={saving} />}
     </View>
   );
@@ -262,13 +285,16 @@ export function ServiceForm({
   const numericCost = costo.trim() ? Number(costo) : 0;
   const validKm = numericKm === null || (Number.isInteger(numericKm) && numericKm >= 0);
   const validCost = Number.isFinite(numericCost) && numericCost >= 0 && numericCost <= 999999999.99;
-  const validDates = validDate(fecha) && (!proximo.trim() || (validDate(proximo) && proximo >= fecha));
+  const validDates = validWorkshopDate(fecha) &&
+    (!proximo.trim() || (validWorkshopDate(proximo) && proximo >= fecha));
+  const validText = tipo.trim().length >= 2 && tipo.trim().length <= 80 && descripcion.trim().length >= 2 && descripcion.trim().length <= 2000;
+  const validExtras = tecnico.trim().length <= 120 && recomendaciones.trim().length <= 2000;
   const vehicle = vehicles.find((item) => item.id === vehiculoId);
 
   return (
     <View style={styles.form}>
       <Text style={styles.formIntro}>Anota el trabajo realizado y la siguiente visita recomendada.</Text>
-      <Text style={styles.fieldTitle}>VEHÍCULO</Text>
+      <Text style={styles.fieldTitle}>Vehículo</Text>
       {initial ? (
         <Text style={styles.lockedVehicle}>{initial.placa || vehicle?.placa || "Vehículo"} · {initial.marca || vehicle?.marca} {initial.modelo || vehicle?.modelo} (asociación fija del historial)</Text>
       ) : <ChoiceChips
@@ -276,22 +302,25 @@ export function ServiceForm({
           selectedId={vehiculoId}
           onSelect={setVehiculoId}
           labelFor={(item) => item.placa + " · " + item.marca + " " + item.modelo}
+          emptyMessage="Primero registra un vehículo para agregarle un servicio."
         />}
-      <Field label="FECHA DEL SERVICIO" value={fecha} onChangeText={setFecha} placeholder="AAAA-MM-DD" />
-      <Field label="TIPO DE SERVICIO" value={tipo} onChangeText={setTipo} placeholder="Cambio de aceite" />
-      <Field label="DETALLE DEL TRABAJO" value={descripcion} onChangeText={setDescripcion} placeholder="Describe las tareas realizadas" multiline />
+      <Field label="Fecha del servicio" value={fecha} onChangeText={setFecha} placeholder="AAAA-MM-DD" maxLength={10} />
+      <Field label="Tipo de servicio" value={tipo} onChangeText={setTipo} placeholder="Cambio de aceite" maxLength={80} />
+      <Field label="Trabajo realizado" value={descripcion} onChangeText={setDescripcion} placeholder="Describe las tareas realizadas" multiline maxLength={2000} />
       <View style={styles.formRow}>
         <View style={styles.formHalf}>
-          <Field label="KILOMETRAJE" value={kilometraje} onChangeText={setKilometraje} placeholder="50000" keyboardType="numeric" />
+          <Field label="Kilometraje (opcional)" value={kilometraje} onChangeText={setKilometraje} placeholder="50000" keyboardType="numeric" maxLength={10} />
         </View>
         <View style={styles.formHalf}>
-          <Field label="COSTO (NIO)" value={costo} onChangeText={setCosto} placeholder="0.00" keyboardType="decimal-pad" />
+          <Field label="Costo en córdobas" value={costo} onChangeText={setCosto} placeholder="0.00" keyboardType="decimal-pad" maxLength={12} />
         </View>
       </View>
-      <Field label="TÉCNICO" value={tecnico} onChangeText={setTecnico} placeholder="Nombre del técnico" />
-      <Field label="RECOMENDACIONES" value={recomendaciones} onChangeText={setRecomendaciones} placeholder="Trabajo recomendado para la próxima visita" multiline />
-      <Field label="PRÓXIMO MANTENIMIENTO (OPCIONAL)" value={proximo} onChangeText={setProximo} placeholder="AAAA-MM-DD" />
-      {!validDates && <Text style={styles.validationText}>Revisa las fechas: deben ser válidas y la próxima no puede ser anterior al servicio.</Text>}
+      <Field label="Técnico (opcional)" value={tecnico} onChangeText={setTecnico} placeholder="Nombre del técnico" maxLength={120} />
+      <Field label="Recomendaciones (opcional)" value={recomendaciones} onChangeText={setRecomendaciones} placeholder="Trabajo recomendado para la próxima visita" multiline maxLength={2000} />
+      <Field label="Próximo mantenimiento (opcional)" value={proximo} onChangeText={setProximo} placeholder="AAAA-MM-DD" maxLength={10} />
+      {!validText && <Text style={styles.validationText}>Completa el tipo (2–80 caracteres) y el trabajo (2–2000 caracteres).</Text>}
+      {!validExtras && <Text style={styles.validationText}>Revisa el nombre del técnico (máximo 120) y las recomendaciones (máximo 2000 caracteres).</Text>}
+      {!validDates && <Text style={styles.validationText}>Usa una fecha válida entre 1886 y 2100; la próxima visita no puede ser anterior al servicio.</Text>}
       {!validKm && <Text style={styles.validationText}>El kilometraje debe ser un entero mayor o igual a cero.</Text>}
       {!validCost && <Text style={styles.validationText}>El costo debe estar entre 0 y 999,999,999.99.</Text>}
       <View style={styles.actions}>
@@ -311,7 +340,7 @@ export function ServiceForm({
               proximoMantenimiento: proximo.trim() || null,
             })}
             loading={saving}
-            disabled={!vehiculoId || !validDates || !validKm || !validCost || tipo.trim().length < 2 || tipo.trim().length > 80 || descripcion.trim().length < 2 || descripcion.trim().length > 2000 || tecnico.length > 120 || recomendaciones.length > 2000}
+            disabled={!vehiculoId || !validDates || !validKm || !validCost || !validText || !validExtras}
           />
         </View>
       </View>

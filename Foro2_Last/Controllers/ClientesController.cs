@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Taller.Application.DTOs;
@@ -11,11 +12,12 @@ namespace Foro2_Last.Controllers;
 public sealed class ClientesController(ClienteService clientes) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ClienteDto>>> Listar([FromQuery] string? buscar) =>
+    public async Task<ActionResult<IReadOnlyList<ClienteDto>>> Listar(
+        [FromQuery, StringLength(254, ErrorMessage = "La búsqueda no puede superar 254 caracteres.")] string? buscar) =>
         Ok(await clientes.ListarAsync(buscar));
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ClienteDto>> Obtener(int id)
+    public async Task<ActionResult<ClienteDto>> Obtener([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         var cliente = await clientes.ObtenerAsync(id);
         return cliente is null ? NotFound() : Ok(cliente);
@@ -29,11 +31,11 @@ public sealed class ClientesController(ClienteService clientes) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Actualizar(int id, GuardarClienteRequest request) =>
+    public async Task<IActionResult> Actualizar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id, GuardarClienteRequest request) =>
         await clientes.ActualizarAsync(id, request) ? NoContent() : NotFound();
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Eliminar(int id)
+    public async Task<IActionResult> Eliminar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         var resultado = await clientes.EliminarAsync(id);
         return resultado switch

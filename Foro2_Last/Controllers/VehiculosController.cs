@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Taller.Application.DTOs;
@@ -14,11 +15,12 @@ public sealed class VehiculosController(
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<VehiculoDto>>> Listar(
-        [FromQuery] int? clienteId, [FromQuery] string? buscar) =>
+        [FromQuery, Range(1, int.MaxValue, ErrorMessage = "El cliente debe ser un identificador positivo.")] int? clienteId,
+        [FromQuery, StringLength(120, ErrorMessage = "La búsqueda no puede superar 120 caracteres.")] string? buscar) =>
         Ok(await vehiculos.ListarAsync(clienteId, buscar));
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<VehiculoDto>> Obtener(int id)
+    public async Task<ActionResult<VehiculoDto>> Obtener([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         var vehiculo = await vehiculos.ObtenerAsync(id);
         return vehiculo is null ? NotFound() : Ok(vehiculo);
@@ -34,15 +36,15 @@ public sealed class VehiculosController(
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Actualizar(int id, GuardarVehiculoRequest request) =>
+    public async Task<IActionResult> Actualizar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id, GuardarVehiculoRequest request) =>
         await vehiculos.ActualizarAsync(id, request) ? NoContent() : NotFound();
 
     [HttpPut("{id:int}/cliente")]
-    public async Task<IActionResult> AsociarCliente(int id, AsociarVehiculoRequest request) =>
+    public async Task<IActionResult> AsociarCliente([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id, AsociarVehiculoRequest request) =>
         await vehiculos.AsociarClienteAsync(id, request.ClienteId) ? NoContent() : NotFound();
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Eliminar(int id)
+    public async Task<IActionResult> Eliminar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         var resultado = await vehiculos.EliminarAsync(id);
         return resultado switch
@@ -54,7 +56,7 @@ public sealed class VehiculosController(
     }
 
     [HttpGet("{id:int}/historial")]
-    public async Task<IActionResult> Historial(int id)
+    public async Task<IActionResult> Historial([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         if (await vehiculos.ObtenerAsync(id) is null) return NotFound();
         return Ok(await mantenimientos.ListarAsync(id));

@@ -8,6 +8,13 @@ namespace Taller.Infrastructure.Repositories;
 
 public sealed class UsuarioRepository(SqlConnectionFactory connections) : IUsuarioRepository
 {
+    public async Task<bool> ExisteAlgunUsuarioAsync()
+    {
+        await using var connection = await connections.OpenAsync();
+        await using var command = ProcedimientosSql.CrearComando(connection, ProcedimientosSql.UsuariosExiste);
+        return Convert.ToBoolean(await command.ExecuteScalarAsync());
+    }
+
     public async Task<Usuario?> ObtenerPorNombreAsync(string nombreUsuario)
     {
         await using var connection = await connections.OpenAsync();

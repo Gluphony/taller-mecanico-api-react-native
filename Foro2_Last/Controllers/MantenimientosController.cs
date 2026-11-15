@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Taller.Application.DTOs;
@@ -12,11 +13,11 @@ public sealed class MantenimientosController(MantenimientoService mantenimientos
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<MantenimientoDto>>> Listar(
-        [FromQuery] int? vehiculoId) =>
+        [FromQuery, Range(1, int.MaxValue, ErrorMessage = "El vehículo debe ser un identificador positivo.")] int? vehiculoId) =>
         Ok(await mantenimientos.ListarAsync(vehiculoId));
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<MantenimientoDto>> Obtener(int id)
+    public async Task<ActionResult<MantenimientoDto>> Obtener([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id)
     {
         var servicio = await mantenimientos.ObtenerAsync(id);
         return servicio is null ? NotFound() : Ok(servicio);
@@ -32,10 +33,10 @@ public sealed class MantenimientosController(MantenimientoService mantenimientos
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Actualizar(int id, GuardarMantenimientoRequest request) =>
+    public async Task<IActionResult> Actualizar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id, GuardarMantenimientoRequest request) =>
         await mantenimientos.ActualizarAsync(id, request) ? NoContent() : NotFound();
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Eliminar(int id) =>
+    public async Task<IActionResult> Eliminar([Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser positivo.")] int id) =>
         await mantenimientos.EliminarAsync(id) ? NoContent() : NotFound();
 }

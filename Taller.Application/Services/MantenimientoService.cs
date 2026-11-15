@@ -8,8 +8,12 @@ public sealed class MantenimientoService(
     IMantenimientoRepository repository,
     IVehiculoRepository vehiculos)
 {
-    public async Task<IReadOnlyList<MantenimientoDto>> ListarAsync(int? vehiculoId) =>
-        (await repository.ListarAsync(vehiculoId)).Select(Mapear).ToArray();
+    public async Task<IReadOnlyList<MantenimientoDto>> ListarAsync(int? vehiculoId)
+    {
+        if (vehiculoId is <= 0)
+            throw new ArgumentException("El vehículo debe ser un identificador positivo.");
+        return (await repository.ListarAsync(vehiculoId)).Select(Mapear).ToArray();
+    }
 
     public async Task<MantenimientoDto?> ObtenerAsync(int id) =>
         MapearNullable(await repository.ObtenerAsync(id));
@@ -25,12 +29,12 @@ public sealed class MantenimientoService(
 
     public async Task<bool> ActualizarAsync(int id, GuardarMantenimientoRequest request)
     {
+        ValidarDatos(request);
         var actual = await repository.ObtenerAsync(id);
         if (actual is null) return false;
         if (request.VehiculoId != actual.VehiculoId)
             throw new ArgumentException("No se puede cambiar el vehículo de un servicio existente.");
 
-        ValidarDatos(request);
         return await repository.ActualizarAsync(CrearEntidad(request, actual.VehiculoId, id));
     }
 
@@ -38,12 +42,25 @@ public sealed class MantenimientoService(
 
     private static void ValidarDatos(GuardarMantenimientoRequest request)
     {
+        if (request is null) throw new ArgumentNullException(nameof(request));
         if (request.FechaServicio == default)
             throw new ArgumentException("La fecha del servicio es obligatoria.");
-        if (request.TipoServicio.Trim().Length < 2)
-            throw new ArgumentException("El tipo de servicio debe tener al menos 2 caracteres no vacíos.");
-        if (request.Descripcion.Trim().Length < 2)
-            throw new ArgumentException("La descripción debe tener al menos 2 caracteres no vacíos.");
+        if (request.FechaServicio.Year < 1886 || request.FechaServicio.Year > 2100)
+            throw new ArgumentException("El año de la fecha de servicio debe estar entre 1886 y 2100.");
+        if (string.IsNullOrWhiteSpace(request.TipoServicio) || string.IsNullOrWhiteSpace(request.Descripcion))
+            throw new ArgumentException("El tipo de servicio y el trabajo realizado son obligatorios.");
+        if (request.TipoServicio.Trim().Length is < 2 or > 80)
+            throw new ArgumentException("El tipo de servicio debe tener entre 2 y 80 caracteres no vacíos.");
+        if (request.Descripcion.Trim().Length is < 2 or > 2000)
+            throw new ArgumentException("La descripción debe tener entre 2 y 2000 caracteres no vacíos.");
+        if (request.Kilometraje is < 0)
+            throw new ArgumentException("El kilometraje debe ser un entero igual o mayor que cero.");
+        if (request.Costo is < 0 or > 999999999.99m)
+            throw new ArgumentException("El costo debe estar entre 0 y 999,999,999.99.");
+        if (request.Tecnico?.Trim().Length > 120)
+            throw new ArgumentException("El nombre del técnico no puede superar 120 caracteres.");
+        if (request.Recomendaciones?.Trim().Length > 2000)
+            throw new ArgumentException("Las recomendaciones no pueden superar 2000 caracteres.");
         if (request.ProximoMantenimiento is not null &&
             request.ProximoMantenimiento.Value < request.FechaServicio)
             throw new ArgumentException("El próximo mantenimiento no puede ser anterior al servicio.");

@@ -1,29 +1,38 @@
 using Taller.Application.DTOs;
 using Taller.Application.Interfaces;
 using Taller.Domain;
+using System.Text.RegularExpressions;
 
 namespace Taller.Application.Services;
 
 public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepository clientes)
 {
-    public async Task<IReadOnlyList<VehiculoDto>> ListarAsync(int? clienteId, string? buscar) =>
-        (await repository.ListarAsync(clienteId, Limpiar(buscar))).Select(Mapear).ToArray();
+    public async Task<IReadOnlyList<VehiculoDto>> ListarAsync(int? clienteId, string? buscar)
+    {
+        if (clienteId is <= 0)
+            throw new ArgumentException("El cliente debe ser un identificador positivo.");
+        var filtro = Limpiar(buscar);
+        if (filtro?.Length > 120)
+            throw new ArgumentException("La búsqueda no puede superar 120 caracteres.");
+        return (await repository.ListarAsync(clienteId, filtro)).Select(Mapear).ToArray();
+    }
 
     public async Task<VehiculoDto?> ObtenerAsync(int id) =>
         MapearNullable(await repository.ObtenerAsync(id));
 
     public async Task<VehiculoDto?> CrearAsync(GuardarVehiculoRequest request)
     {
-        if (await clientes.ObtenerAsync(request.ClienteId) is null) return null;
         var vehiculo = CrearEntidad(request);
+        if (await clientes.ObtenerAsync(vehiculo.ClienteId) is null) return null;
         return Mapear(await repository.CrearAsync(vehiculo));
     }
 
     public async Task<bool> ActualizarAsync(int id, GuardarVehiculoRequest request)
     {
+        var vehiculo = CrearEntidad(request, id);
         if (await repository.ObtenerAsync(id) is null ||
-            await clientes.ObtenerAsync(request.ClienteId) is null) return false;
-        return await repository.ActualizarAsync(CrearEntidad(request, id));
+            await clientes.ObtenerAsync(vehiculo.ClienteId) is null) return false;
+        return await repository.ActualizarAsync(vehiculo);
     }
 
     public async Task<bool> AsociarClienteAsync(int id, int clienteId)
@@ -43,18 +52,24 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
 
     private static Vehiculo CrearEntidad(GuardarVehiculoRequest request, int id = 0)
     {
+        if (request is null) throw new ArgumentNullException(nameof(request));
+        if (string.IsNullOrWhiteSpace(request.Placa) || string.IsNullOrWhiteSpace(request.Marca) || string.IsNullOrWhiteSpace(request.Modelo))
+            throw new ArgumentException("La placa, la marca y el modelo son obligatorios.");
         var placa = request.Placa.Trim().ToUpperInvariant();
         var marca = request.Marca.Trim();
         var modelo = request.Modelo.Trim();
         var vin = Limpiar(request.Vin)?.ToUpperInvariant();
-        if (placa.Length is < 2 or > 12)
-            throw new ArgumentException("La placa debe tener entre 2 y 12 caracteres no vacíos.");
+        if (placa.Length is < 2 or > 12 || !Regex.IsMatch(placa, @"^[A-Z0-9][A-Z0-9 -]{0,10}[A-Z0-9]$"))
+            throw new ArgumentException("La placa debe tener entre 2 y 12 letras, números, espacios o guiones.");
         if (marca.Length is < 1 or > 60 || modelo.Length is < 1 or > 60)
             throw new ArgumentException("La marca y el modelo deben tener entre 1 y 60 caracteres no vacíos.");
-        if (vin is not null && vin.Length is < 11 or > 17)
-            throw new ArgumentException("El VIN debe tener entre 11 y 17 caracteres.");
-        if (request.Anio is not null && request.Anio is < 1886 or > 2100)
-            throw new ArgumentException("El año debe estar entre 1886 y 2100.");
+        if (vin is not null && (vin.Length is < 11 or > 17 || !Regex.IsMatch(vin, @"^[A-HJ-NPR-Z0-9]{11,17}$")))
+            throw new ArgumentException("El VIN debe tener entre 11 y 17 letras o números; no puede usar I, O ni Q.");
+        if (request.Anio is not null && (request.Anio < 1886 || request.Anio > DateTime.UtcNow.Year + 1))
+            throw new ArgumentException($"El año debe estar entre 1886 y {DateTime.UtcNow.Year + 1}.");
+        var color = Limpiar(request.Color);
+        if (color?.Length > 40)
+            throw new ArgumentException("El color no puede superar 40 caracteres.");
 
         return new Vehiculo
         {
@@ -65,7 +80,7 @@ public sealed class VehiculoService(IVehiculoRepository repository, IClienteRepo
             Marca = marca,
             Modelo = modelo,
             Anio = request.Anio,
-            Color = Limpiar(request.Color)
+            Color = color
         };
     }
 

@@ -15,9 +15,12 @@ Requisitos: .NET 8 SDK, Node.js 24.3 o posterior de la rama 24, npm y SQL Server
 
 ## Base de datos
 
-1. Abre y ejecuta `database/create_database.sql` en SQL Server Management Studio con una cuenta que pueda crear bases de datos.
-2. Abre y ejecuta `database/create_procedures.sql` en la misma instancia. Instala o actualiza el CRUD que usa la API.
-3. Ambos archivos se pueden volver a ejecutar: el primero conserva los registros y el segundo reemplaza las definiciones de procedimientos.
+1. Ejecuta `database/create_database.sql` una sola vez en SQL Server Management Studio con una cuenta que pueda crear bases de datos. Crea las tablas e índices en `TallerMecanicoDb`; no carga registros de ejemplo.
+2. Ejecuta `database/create_procedures.sql` en la misma instancia. Sus procedimientos se pueden volver a ejecutar para instalarlos o actualizarlos.
+
+El instalador de esquema es para una base nueva y vacía; no lo uses para actualizar una base con datos. El script no crea usuarios predeterminados ni inserta el usuario `string`.
+
+Si ya tienes una base creada con una versión anterior, no vuelvas a ejecutar el instalador. Ejecuta `database/create_procedures.sql` y luego `database/upgrade_constraints.sql`; la migración valida primero los registros existentes y agrega reglas `CHECK` sin borrar ni reescribir datos.
 
 La configuración compartida usa la instancia local predeterminada (`localhost`). Si tu servidor usa una instancia con nombre, configura la variable para la sesión actual de PowerShell antes de iniciar la API:
 
@@ -52,7 +55,7 @@ Si la salida de compilación dice que `Taller.Application.dll` o `Taller.Infrast
 
 ## Primer acceso
 
-Crea el primer administrador una sola vez con `POST /api/auth/bootstrap`, usando una contraseña de al menos 12 caracteres. Después inicia sesión con `POST /api/auth/login`. Las rutas de datos usan el JWT en `Authorization: Bearer <token>`. La aplicación también incluye estos formularios.
+La app consulta `GET /api/auth/status`: si la base no tiene cuentas, muestra el formulario para crear el primer administrador; si ya tiene una, muestra el inicio de sesión. `POST /api/auth/bootstrap` crea ese primer acceso una sola vez y pide una contraseña de 12 a 200 caracteres. Después se inicia sesión con `POST /api/auth/login`. No hay usuario ni contraseña de demostración. Las rutas de datos usan el JWT en `Authorization: Bearer <token>`.
 
 ## CRUD disponible
 

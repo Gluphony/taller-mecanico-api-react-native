@@ -338,6 +338,15 @@ END;
 GO
 
 /* Acceso del administrador */
+CREATE OR ALTER PROCEDURE dbo.Usuarios_Existe
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT CONVERT(BIT, CASE WHEN EXISTS (SELECT 1 FROM dbo.Usuarios) THEN 1 ELSE 0 END) AS Existe;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.Usuarios_ObtenerPorNombre
     @NombreUsuario NVARCHAR(80)
 AS

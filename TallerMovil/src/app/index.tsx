@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   API_BASE_URL, apiRequest, jsonBody, setApiToken,
-  type Cliente, type Mantenimiento, type Sesion, type Vehiculo,
+  type Cliente, type EstadoAcceso, type Mantenimiento, type Sesion, type Vehiculo,
 } from "@/api";
 import { Button, BrandMark, Field, SectionHeading, Surface, TabBar } from "@/components/design";
 import { ClientCard, EmptyCard, MetricCard, ServiceCard, VehicleCard } from "@/components/records";
@@ -36,6 +36,8 @@ export default function TallerHome() {
   const [checking, setChecking] = useState(true);
   const [userName, setUserName] = useState("Equipo");
   const [mode, setMode] = useState<AuthMode>("login");
+  const [setupIssue, setSetupIssue] = useState<string | null>(null);
+  const [setupBusy, setSetupBusy] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
@@ -72,25 +74,52 @@ export default function TallerHome() {
 
   useEffect(() => {
     let active = true;
-    readToken().then(async (saved) => {
-      if (!active) return;
-      if (saved) {
-        setApiToken(saved);
-        setToken(saved);
-        await refreshData(saved);
+    void (async () => {
+      try {
+        const saved = await readToken();
+        if (!active) return;
+        if (saved) {
+          setApiToken(saved);
+          setToken(saved);
+          await refreshData(saved);
+        } else {
+          const state = await apiRequest<EstadoAcceso>("/api/auth/status");
+          if (!active) return;
+          setMode(state.requiereConfiguracionInicial ? "bootstrap" : "login");
+          setSetupIssue(null);
+        }
+      } catch {
+        if (active) setSetupIssue("No se pudo consultar el acceso inicial. Revisa que la API y SQL Server estén activos.");
+      } finally {
+        if (active) setChecking(false);
       }
-      if (active) setChecking(false);
-    });
+    })();
     return () => { active = false; };
   }, [refreshData]);
 
+  async function checkInitialSetup() {
+    setSetupBusy(true);
+    try {
+      const state = await apiRequest<EstadoAcceso>("/api/auth/status");
+      setMode(state.requiereConfiguracionInicial ? "bootstrap" : "login");
+      setSetupIssue(null);
+      setNotice(null);
+    } catch (error) {
+      setSetupIssue(error instanceof Error ? error.message : "No se pudo consultar el acceso inicial.");
+    } finally {
+      setSetupBusy(false);
+    }
+  }
+
   async function submitAuth() {
-    if (!username.trim() || !password) {
-      setNotice({ type: "error", message: "Escribe usuario y contraseña para continuar." });
+    const normalizedUsername = username.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(normalizedUsername)) {
+      setNotice({ type: "error", message: "El usuario debe tener entre 3 y 80 caracteres; usa letras, números, punto, guion o guion bajo." });
       return;
     }
-    if (mode === "bootstrap" && password.length < 12) {
-      setNotice({ type: "error", message: "La contraseña inicial debe tener al menos 12 caracteres." });
+    const minimumPasswordLength = mode === "bootstrap" ? 12 : 8;
+    if (password.trim().length === 0 || password.length < minimumPasswordLength || password.length > 200) {
+      setNotice({ type: "error", message: `La contraseña debe tener entre ${minimumPasswordLength} y 200 caracteres.` });
       return;
     }
     setAuthBusy(true);
@@ -99,18 +128,19 @@ export default function TallerHome() {
       if (mode === "bootstrap") {
         await apiRequest("/api/auth/bootstrap", {
           method: "POST",
-          body: jsonBody({ nombreUsuario: username.trim(), contrasena: password }),
+          body: jsonBody({ nombreUsuario: normalizedUsername, contrasena: password }),
         });
         setMode("login");
+        setPassword("");
         setNotice({ type: "success", message: "Administrador creado. Ya puedes iniciar sesión." });
       } else {
         const result = await apiRequest<Sesion>("/api/auth/login", {
           method: "POST",
-          body: jsonBody({ nombreUsuario: username.trim(), contrasena: password }),
+          body: jsonBody({ nombreUsuario: normalizedUsername, contrasena: password }),
         });
         setApiToken(result.token);
         setToken(result.token);
-        setUserName(result.nombreUsuario || username.trim());
+        setUserName(result.nombreUsuario || normalizedUsername);
         try {
           await saveToken(result.token);
         } catch {
@@ -120,7 +150,14 @@ export default function TallerHome() {
         await refreshData(result.token);
       }
     } catch (error) {
-      setNotice({ type: "error", message: error instanceof Error ? error.message : "No fue posible iniciar sesión." });
+      const message = error instanceof Error ? error.message : "No fue posible completar el acceso.";
+      if (mode === "bootstrap" && message.includes("ya tiene una cuenta")) {
+        setMode("login");
+        setPassword("");
+        setNotice({ type: "info", message });
+      } else {
+        setNotice({ type: "error", message });
+      }
     } finally {
       setAuthBusy(false);
     }
@@ -141,6 +178,31 @@ export default function TallerHome() {
     setOverlay(null);
     setNotice({ type: "success", message });
     await refreshData(token);
+  }
+
+  function openNewVehicle() {
+    if (clients.length === 0) {
+      setTab("clientes");
+      setSearch("");
+      setNotice({ type: "info", message: "Primero registra al propietario; después podrás vincular su vehículo." });
+      return;
+    }
+    setOverlay({ type: "vehiculo" });
+  }
+
+  function openNewService(vehiculoId?: number) {
+    if (vehicles.length === 0) {
+      setTab(clients.length === 0 ? "clientes" : "vehiculos");
+      setSearch("");
+      setNotice({
+        type: "info",
+        message: clients.length === 0
+          ? "Registra primero al cliente y su vehículo para iniciar el historial."
+          : "Registra un vehículo antes de agregarle servicios.",
+      });
+      return;
+    }
+    setOverlay({ type: "servicio", vehiculoId });
   }
 
   async function saveClient(values: ClienteValues) {
@@ -232,7 +294,7 @@ export default function TallerHome() {
     return (
       <SafeAreaView style={styles.loadingScreen}>
         <ActivityIndicator color={palette.success} size="large" />
-        <Text style={styles.mutedText}>Preparando tu taller…</Text>
+        <Text style={styles.mutedText}>Comprobando el acceso del taller…</Text>
       </SafeAreaView>
     );
   }
@@ -240,7 +302,7 @@ export default function TallerHome() {
   if (!token) {
     return (
       <AuthScreen
-        mode={mode} setMode={(value) => { setMode(value); setNotice(null); }}
+        mode={mode} setupIssue={setupIssue} setupBusy={setupBusy} onRetrySetup={() => void checkInitialSetup()}
         username={username} setUsername={setUsername}
         password={password} setPassword={setPassword}
         notice={notice} busy={authBusy} wide={wide} onSubmit={submitAuth}
@@ -279,8 +341,8 @@ export default function TallerHome() {
               <Dashboard
                 clients={clients} vehicles={vehicles} services={services} loading={loading}
                 onAddClient={() => setOverlay({ type: "cliente" })}
-                onAddVehicle={() => setOverlay({ type: "vehiculo" })}
-                onAddService={() => setOverlay({ type: "servicio" })}
+                onAddVehicle={openNewVehicle}
+                onAddService={() => openNewService()}
                 onOpenClients={() => setTab("clientes")}
                 onOpenVehicles={() => setTab("vehiculos")}
                 onOpenServices={() => setTab("servicios")}
@@ -305,8 +367,8 @@ export default function TallerHome() {
 
             {tab === "vehiculos" && (
               <View>
-                <PageHeading eyebrow="GARAGE" title="Vehículos" detail="Propietario e historial, siempre a mano."
-                  action="+ Nuevo vehículo" onAction={() => setOverlay({ type: "vehiculo" })} />
+                <PageHeading eyebrow="GARAGE" title="Vehículos" detail="Cada unidad queda vinculada con su propietario."
+                  action="+ Nuevo vehículo" onAction={openNewVehicle} />
                 <SearchField value={search} onChange={setSearch} placeholder="Buscar placa, marca o cliente" />
                 <SectionHeading title="Vehículos registrados" action={visibleVehicles.length + " en el taller"} />
                 {visibleVehicles.length
@@ -322,14 +384,15 @@ export default function TallerHome() {
                   : <EmptyCard title={q ? "No encontramos coincidencias" : "Tu garage empieza aquí"}
                       detail={q ? "Prueba con otra placa o marca." : "Registra un vehículo y vincúlalo a su cliente."}
                       action={q ? "Limpiar búsqueda" : "Registrar vehículo"}
-                      onPress={() => q ? setSearch("") : setOverlay({ type: "vehiculo" })} />}
+                      onPress={() => q ? setSearch("") : openNewVehicle()} />}
               </View>
             )}
 
             {tab === "servicios" && (
               <View>
-                <PageHeading eyebrow="MANTENIMIENTO" title="Servicios" detail="Cada visita queda guardada en el historial."
-                  action="+ Registrar servicio" onAction={() => setOverlay({ type: "servicio" })} />
+                <PageHeading eyebrow="MANTENIMIENTO" title="Servicios" detail="Cada visita queda guardada en el historial del vehículo."
+                  action={vehicles.length ? "+ Registrar servicio" : "+ Registrar vehículo"}
+                  onAction={vehicles.length ? () => openNewService() : openNewVehicle} />
                 <SearchField value={search} onChange={setSearch} placeholder="Buscar placa o tipo de servicio" />
                 <SectionHeading title="Historial de servicios" action={visibleServices.length + " registros"} />
                 {visibleServices.length
@@ -340,8 +403,8 @@ export default function TallerHome() {
                     ))
                   : <EmptyCard title={q ? "No encontramos coincidencias" : "Aún no hay servicios"}
                       detail={q ? "Prueba con otra placa o descripción." : "Registra una visita y aparecerá aquí y en el historial del vehículo."}
-                      action={q ? "Limpiar búsqueda" : "Registrar servicio"}
-                      onPress={() => q ? setSearch("") : setOverlay({ type: "servicio" })} />}
+                      action={q ? "Limpiar búsqueda" : vehicles.length ? "Registrar servicio" : "Registrar vehículo"}
+                      onPress={() => q ? setSearch("") : vehicles.length ? openNewService() : openNewVehicle()} />}
               </View>
             )}
           </ScrollView>
@@ -357,18 +420,20 @@ export default function TallerHome() {
         onDeleteClient={(id) => void deleteRecord("clientes", id)}
         onDeleteVehicle={(id) => void deleteRecord("vehiculos", id)}
         onDeleteService={(id) => void deleteRecord("mantenimientos", id)}
-        onAddService={(vehiculoId) => setOverlay({ type: "servicio", vehiculoId })}
+        onAddService={(vehiculoId) => openNewService(vehiculoId)}
       />
     </SafeAreaView>
   );
 }
 
 function AuthScreen({
-  mode, setMode, username, setUsername, password, setPassword,
+  mode, setupIssue, setupBusy, onRetrySetup, username, setUsername, password, setPassword,
   notice, busy, wide, onSubmit,
 }: {
   mode: AuthMode;
-  setMode: (value: AuthMode) => void;
+  setupIssue: string | null;
+  setupBusy: boolean;
+  onRetrySetup: () => void;
   username: string;
   setUsername: (value: string) => void;
   password: string;
@@ -385,37 +450,33 @@ function AuthScreen({
           <View style={styles.authStory}>
             <BrandMark />
             <View style={styles.storyEyebrow}><View style={styles.onlineDot} /><Text style={styles.storyEyebrowText}>GESTIÓN DE TALLER</Text></View>
-            <Text style={styles.authTitle}>Precisión en cada servicio.</Text>
-            <Text style={styles.authDescription}>Clientes, vehículos e historial técnico conectados en una plataforma clara para el trabajo diario.</Text>
+            <Text style={styles.authTitle}>El taller, bajo control.</Text>
+            <Text style={styles.authDescription}>Clientes, vehículos y servicios en un expediente claro, desde la recepción hasta el próximo mantenimiento.</Text>
             <View style={styles.storyCard}>
               <Image source={workshopImage} style={styles.storyImage} contentFit="cover" transition={400} accessibilityLabel="Automóvil en un taller mecánico" />
               <View style={styles.storyOverlay} />
               <View style={styles.storyCardTop}>
-                <Text style={styles.storyCardEyebrow}>TALLER · SERVICIO · CONFIANZA</Text>
-                <Text style={styles.storyCardIndex}>01 / 04</Text>
+              <Text style={styles.storyCardEyebrow}>OPERACIÓN DEL TALLER</Text>
+              <Text style={styles.storyCardIndex}>REGISTRO / 01</Text>
               </View>
-              <Text style={styles.storyCardTitle}>Cada unidad, con su historia al día.</Text>
+            <Text style={styles.storyCardTitle}>Cada visita queda vinculada a su vehículo.</Text>
             </View>
           </View>
 
           <View style={styles.authPanel}>
-            <Text style={styles.authEyebrow}>{mode === "login" ? "BIENVENIDO DE VUELTA" : "CONFIGURACIÓN INICIAL"}</Text>
-            <Text style={styles.authPanelTitle}>{mode === "login" ? "Inicia sesión" : "Crea el acceso del taller"}</Text>
+            <Text style={styles.authEyebrow}>{mode === "login" ? "ACCESO DEL TALLER" : "PRIMERA CONFIGURACIÓN"}</Text>
+            <Text style={styles.authPanelTitle}>{mode === "login" ? "Inicia sesión" : "Crea la cuenta administradora"}</Text>
             <Text style={styles.authPanelCopy}>
-              {mode === "login" ? "Entra con tu cuenta de administrador." : "Este paso crea el primer administrador y solo se realiza una vez."}
+              {mode === "login" ? "Usa la cuenta que configuró esta base de datos." : "Esta instalación está vacía. Crea el acceso que usará el equipo."}
             </Text>
+            {setupIssue && <Notice notice={{ type: "error", message: setupIssue }} />}
+            {setupIssue && <Button title="Volver a comprobar" variant="secondary" onPress={onRetrySetup} loading={setupBusy} small />}
             {notice && <Notice notice={notice} />}
-            {mode === "bootstrap" && <Text style={styles.passwordHint}>Usa una contraseña segura de al menos 12 caracteres.</Text>}
-            <Field label="USUARIO" value={username} onChangeText={setUsername} placeholder="Tu nombre de usuario" autoCapitalize="none" />
-            <Field label="CONTRASEÑA" value={password} onChangeText={setPassword} placeholder="Escribe tu contraseña" secureTextEntry autoCapitalize="none" />
-            <Button title={mode === "login" ? "Entrar al taller" : "Crear administrador"} onPress={onSubmit} loading={busy} />
-            <Pressable onPress={() => setMode(mode === "login" ? "bootstrap" : "login")} style={styles.modeLink}>
-              <Text style={styles.modeLinkText}>
-                {mode === "login" ? "¿Primera vez? " : "¿Ya tienes usuario? "}
-                <Text style={styles.modeLinkStrong}>{mode === "login" ? "Configurar acceso" : "Volver al login"}</Text>
-              </Text>
-            </Pressable>
-            <Text style={styles.authFootnote}>Sesión segura · Datos conectados a la API del taller</Text>
+            {mode === "bootstrap" && <Text style={styles.passwordHint}>Usa entre 12 y 200 caracteres. No hay cuentas de ejemplo.</Text>}
+            <Field label="Usuario" value={username} onChangeText={setUsername} placeholder="Ej. taller.central" autoCapitalize="none" maxLength={80} />
+            <Field label="Contraseña" value={password} onChangeText={setPassword} placeholder="Escribe tu contraseña" secureTextEntry autoCapitalize="none" maxLength={200} />
+            <Button title={mode === "login" ? "Entrar al taller" : "Crear acceso"} onPress={onSubmit} loading={busy} />
+            <Text style={styles.authFootnote}>{mode === "login" ? "Inicio de sesión protegido · API del taller" : "Primer acceso · la contraseña no se guarda en texto plano"}</Text>
           </View>
         </View>
       </ScrollView>
@@ -447,8 +508,8 @@ function Dashboard({
       <View style={styles.dashHeading}>
         <View>
           <Text style={styles.eyebrow}>{date.toUpperCase()}</Text>
-          <Text style={styles.dashTitle}>Todo en orden.</Text>
-          <Text style={styles.dashSubtitle}>Un vistazo rápido al movimiento del taller.</Text>
+          <Text style={styles.dashTitle}>Resumen del taller</Text>
+          <Text style={styles.dashSubtitle}>Clientes, vehículos y mantenimientos registrados.</Text>
         </View>
         {loading && <ActivityIndicator color={palette.success} />}
       </View>
@@ -457,13 +518,14 @@ function Dashboard({
         <View style={styles.heroShade} />
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}><View style={styles.heroDot} /><Text style={styles.heroPillText}>OPERACIÓN DEL TALLER</Text></View>
-          <Text style={styles.heroTitle}>Servicio preciso.{'\n'}Historial completo.</Text>
-          <Text style={styles.heroText}>Consulta vehículos, registra cada visita y conserva el trabajo del taller organizado.</Text>
-          <Button title="Registrar servicio" onPress={onAddService} variant="secondary" small />
+          <Text style={styles.heroTitle}>Cada servicio, en el expediente correcto.</Text>
+          <Text style={styles.heroText}>Vincula el trabajo con el cliente y su vehículo para consultar el historial cuando haga falta.</Text>
+          <Button title={vehicles.length ? "Registrar servicio" : "Registrar vehículo"}
+            onPress={vehicles.length ? onAddService : onAddVehicle} variant="secondary" small />
         </View>
         <View style={styles.heroFoot}>
-          <Text style={styles.heroFootText}>TALLER MECÁNICO · SERVICIO INTEGRAL</Text>
-          <Text style={styles.heroFootText}>01 / 04</Text>
+          <Text style={styles.heroFootText}>RECEPCIÓN · VEHÍCULOS · HISTORIAL</Text>
+          <Text style={styles.heroFootText}>GESTIÓN DIARIA</Text>
         </View>
       </View>
       <View style={styles.metrics}>
@@ -475,11 +537,17 @@ function Dashboard({
       <View style={styles.quickList}>
         <QuickAction glyph="+" title="Nuevo cliente" detail="Abrir expediente" onPress={onAddClient} />
         <QuickAction glyph="▰" title="Nuevo vehículo" detail="Vincular propietario" onPress={onAddVehicle} />
-        <QuickAction glyph="↻" title="Registrar servicio" detail="Actualizar historial" onPress={onAddService} />
+        <QuickAction glyph="↻" title={vehicles.length ? "Registrar servicio" : "Preparar primer vehículo"}
+          detail={vehicles.length ? "Actualizar el historial" : "Un servicio necesita un vehículo"}
+          onPress={vehicles.length ? onAddService : onAddVehicle} />
       </View>
       <SectionHeading title="Actividad reciente" action="Ver todos" onAction={onOpenServices} />
       {services.length === 0 ? (
-        <EmptyCard title="Todavía no hay movimientos" detail="Registra el primer servicio para iniciar el historial." action="Crear primer servicio" onPress={onAddService} />
+        <EmptyCard
+          title={vehicles.length ? "Todavía no hay movimientos" : "Primero registra un vehículo"}
+          detail={vehicles.length ? "Agrega una visita para iniciar el historial de mantenimiento." : "Cada servicio queda asociado a un vehículo y a su propietario."}
+          action={vehicles.length ? "Registrar primer servicio" : "Registrar vehículo"}
+          onPress={vehicles.length ? onAddService : onAddVehicle} />
       ) : services.slice(0, 3).map((service) => (
         <Pressable key={service.id} onPress={() => {
           const vehicle = vehicles.find((item) => item.id === service.vehiculoId);
@@ -539,7 +607,8 @@ function SearchField({ value, onChange, placeholder }: {
       <Text style={styles.searchIcon}>⌕</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder}
         placeholderTextColor={palette.muted} style={styles.searchInput}
-        returnKeyType="search" clearButtonMode="while-editing" />
+        returnKeyType="search" clearButtonMode="while-editing" maxLength={254}
+        accessibilityLabel={placeholder} />
       {!!value && Platform.OS !== "ios" && <Pressable onPress={() => onChange("")}><Text style={styles.searchClear}>×</Text></Pressable>}
     </View>
   );
