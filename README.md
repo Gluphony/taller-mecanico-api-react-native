@@ -25,6 +25,12 @@ $env:ConnectionStrings__TallerDb = 'Server=localhost\SQLEXPRESS;Database=TallerM
 
 Cambia `SQLEXPRESS` por el nombre de tu instancia. También puedes guardar la cadena local en `Foro2_Last/appsettings.Development.json`, archivo ignorado por Git. El repositorio no guarda bases de datos ni credenciales.
 
+Para usar la plantilla incluida para desarrollo local, copia el archivo y ajusta el nombre de instancia si es distinto:
+
+```powershell
+Copy-Item .\Foro2_Last\appsettings.Development.example.json .\Foro2_Last\appsettings.Development.json
+```
+
 ## Iniciar la API
 
 Desde la raíz del repositorio:
